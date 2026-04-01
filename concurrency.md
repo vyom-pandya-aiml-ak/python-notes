@@ -161,6 +161,8 @@ Python 3.13 introduced an experimental “free-threaded” mode that allows disa
 
 **In plain English:** Threading lets you run multiple tasks inside the same Python process. It’s the same kitchen with the same shared fridge — but now you have multiple chefs working at the same time. This is perfect when your tasks spend a lot of time waiting (like downloading files or querying a database).
 
+**Real World Example:** A common real-world use case is downloading multiple files or scraping multiple URLs simultaneously. Instead of waiting for each download to complete sequentially, you can use threading to initiate multiple downloads concurrently, significantly reducing the total time.
+
 ### 🎯 Best For: I/O-Bound Work
 
 Anything that involves **waiting for something external**:
@@ -322,6 +324,8 @@ print(f"Got:      {counter}")   # Now always 200000 ✅
 
 **In plain English:** When your task is computationally heavy (lots of math, crunching data, processing images), threading won’t help because of the GIL. The solution? Hire multiple completely separate kitchens, each with their own chef, their own fridge, their own everything. Each process has its own GIL, so they can all run Python code simultaneously on different CPU cores.
 
+**Real World Example:** Imagine you have a folder with thousands of high-resolution images that need to be resized and watermarked(uploading files in online portals require the image to be of certain size). Doing this sequentially (one image at a time) can take a very long time. Multiprocessing allows you to distribute this workload across all available CPU cores, so multiple images are processed in parallel. 
+
 ### 🎯 Best For: CPU-Bound Work
 
 - Data processing (transforming large datasets)
@@ -439,6 +443,8 @@ if __name__ == "__main__":
 ## 8. Asyncio
 
 **In plain English:** Asyncio takes a completely different approach. Instead of creating multiple chefs, it makes *one chef* insanely efficient by tracking every single moment of waiting and filling it with useful work. When the chef is waiting for the oven (network response), they instantly jump to the next task. No waiting, ever.
+
+**Real World Example:** Imagine you need to check the status of several websites, similar to clicking on multiple links simultaneously together. Synchronously, your program would visit the first site, wait for a response, then the second, wait, and so on. With asyncio, your program can start requesting all the sites and then juggle the responses as they arrive, making the most of the time spent waiting for the network. This is ideal for I/O-bound tasks where the program spends most of its time waiting for input/output operations, like network communication or database queries.
 
 This is the most different of the three — it requires you to explicitly tell Python *where* the waiting points are using special keywords: `async` and `await`.
 
