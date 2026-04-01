@@ -1291,7 +1291,32 @@ def test_example(monkeypatch):
 # 6. Use monkeypatch for env vars, config, and feature flags.
 #    Use patch() for service dependencies and external I/O.
 ```
+-----
 
+## Quick Reference Card
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│           PYTHON MOCKING — QUICK DECISION GUIDE                 │
+├─────────────────────────────────────────────────────────────────┤
+│  Need a fake object?              → Mock() or MagicMock()       │
+│  Fake uses __len__, context mgr?  → MagicMock()                 │
+│  Faking an async function?        → AsyncMock()                 │
+│  Replace in production code?      → patch("module.name")        │
+│  Set env var / dict / path?       → pytest monkeypatch fixture  │
+│  Watch real code + record calls?  → Mock(wraps=real_obj)        │
+│  Enforce real arg signatures?     → create_autospec(real_func)  │
+├─────────────────────────────────────────────────────────────────┤
+│  GOLDEN RULE: Patch WHERE it's used, not where it's defined    │
+│  "orders.processor.charge" ✅   "payment.gateway.charge" ❌     │
+├─────────────────────────────────────────────────────────────────┤
+│  CLEANUP RULE: Always use 'with patch()', @patch, or mocker     │
+│  NEVER use patcher.start() without patcher.stop()              │
+├─────────────────────────────────────────────────────────────────┤
+│  OVER-MOCK CHECK: Delete the function body — does test fail?   │
+│  If NO → you are testing your mocks, not your code             │
+└─────────────────────────────────────────────────────────────────┘
+```
 -----
 
 *Built for mastery. Patch confidently. Test fearlessly.*
