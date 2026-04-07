@@ -308,6 +308,17 @@ top3_indices = np.argsort(scores)[-3:][::-1]
 print(scores[top3_indices])    # [95 90 84]
 ```
 
+| Operation | Use Case | Time Complexity |
+|---|---|---|
+| Regular Sort (np.sort) | Use when you just need the values in order (e.g., numbers from 1 to 100). | $O(n \log n)$ |
+| Argsort (np.argsort) | Use when you need the original positions to sort a second, related list (e.g., sorting names by their ages). | $O(n \log n)$ |
+| Argpartition (np.argpartition) | Use when you only need the Top K items (e.g., finding the 5 highest scores in a million entries) and don't care about the rest. | $O(n)$ |
+
+## Summary for Quick Pick:
+
+* Need values sorted? Use sort.
+* Need to reorder a different list? Use argsort.
+* Need speed for a "Top 10" list? Use argpartition.
 ---
 
 ## 5. Module 4 — Operations & Math: Arithmetic to Linear Algebra
