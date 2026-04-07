@@ -448,13 +448,14 @@ print(probs.shape)          # (32, 10)
 print(probs[0].sum())       # 1.0 — valid probability distribution
 ```
 
-| Operation | Syntax | Use Case |
-|---|---|---|
-| Element-wise multiply | `A * B` | Dropout masks, attention weights |
-| Matrix multiply | `A @ B` | Dense layers, attention scores |
-| Dot product (vectors) | `np.dot(u, v)` | Similarity, projections |
-| Outer product | `np.outer(u, v)` | Rank-1 updates |
-| Matrix transpose | `A.T` | Transposing weight matrices |
+
+| Operation | Simple Use Case | Syntax | How Output Changes |
+|---|---|---|---|
+| Element-wise | Applying a filter (e.g., 10% discount to all prices) | A * B | Shape stays the same. Numbers in the same spot multiply. |
+| Matrix Multiply | Combining features (e.g., total cost for multiple orders) | A @ B | Shape blends. Rows of A mix with columns of B. |
+| Dot Product | Getting a single score (e.g., similarity/compatibility) | np.dot(u,v) | Two lists collapse into one single number. |
+| Outer Product | Creating a grid (e.g., building a multiplication table) | np.outer(u,v) | Two lists expand into a full matrix. |
+| Transpose | Flipping the view (e.g., swapping rows for columns) | A.T | Dimensions swap. (Rows $\leftrightarrow$ Columns). |
 
 ---
 
