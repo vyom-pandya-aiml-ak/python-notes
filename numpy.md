@@ -63,7 +63,7 @@ print(f"NumPy array: {time.time() - start:.4f}s")
 
 ## 2. Module 1 — The Array: Building Your Foundation
 
-The **`ndarray`** (N-dimensional array) is NumPy's central data structure. Everything else in this guide exists to create, transform, or query it.
+The **`ndarray`** (N-dimensional array) is NumPy's central data structure. Everything else in this guide exists to create, transform, or query it. By default, maximum supported dimension for an ndarray is 32.
 
 ### 2.1 Creating Arrays from Data
 
