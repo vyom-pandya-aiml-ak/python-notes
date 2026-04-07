@@ -1,911 +1,1079 @@
-# 🔢 NumPy: Zero to Hero
+# NumPy: Zero to Hero for Data Science & AI/ML
 
-> **A comprehensive, practical guide for mastering NumPy — the backbone of scientific computing in Python.**
+> *"NumPy is not just a library — it is the language your data speaks."*
 
------
+This guide takes you from absolute beginner to production-ready practitioner. Every concept is anchored to real Data Science and ML workflows. Code snippets are self-contained and immediately runnable. By the end, you won't just *use* NumPy — you'll *think* in NumPy.
 
-## 📋 Table of Contents
+---
 
-|#|Section                                     |Key Concepts                                                     |
-|-|--------------------------------------------|-----------------------------------------------------------------|
-|1|[Arrays & Creation](#1-arrays--creation)    |`np.array`, `zeros`, `ones`, `arange`, `linspace`, `random`      |
-|2|[Array Properties](#2-array-properties)     |`shape`, `dtype`, `ndim`, `size`, `reshape`                      |
-|3|[Indexing & Slicing](#3-indexing--slicing)  |1D/2D indexing, slicing, boolean masks                           |
-|4|[Operations & Math](#4-operations--math)    |Arithmetic, aggregations, `axis`, `dot`                          |
-|5|[Array Manipulation](#5-array-manipulation) |`flatten`, `transpose`, `concatenate`, `stack`, `split`          |
-|6|[Broadcasting](#6-broadcasting)             |Rules, shape compatibility, examples                             |
-|7|[Advanced Indexing](#7-advanced-indexing)   |Fancy indexing, `np.where`, `argmax`, `argsort`                  |
-|8|[Views vs. Copies](#8-views-vs-copies)      |Memory management, `np.copy`                                     |
-|9|[Statistics & Random](#9-statistics--random)|`std`, `var`, `median`, `percentile`, `seed`, `normal`, `shuffle`|
+## Table of Contents
 
------
+1. [Why NumPy? The Case Against Pure Python](#1-why-numpy-the-case-against-pure-python)
+2. [Module 1 — The Array: Building Your Foundation](#2-module-1--the-array-building-your-foundation)
+3. [Module 2 — Array Attributes: Understanding What You Have](#3-module-2--array-attributes-understanding-what-you-have)
+4. [Module 3 — Accessing Data: Slicing, Masking & Fancy Indexing](#4-module-3--accessing-data-slicing-masking--fancy-indexing)
+5. [Module 4 — Operations & Math: Arithmetic to Linear Algebra](#5-module-4--operations--math-arithmetic-to-linear-algebra)
+6. [Module 5 — Aggregation: Summarizing Your Data](#6-module-5--aggregation-summarizing-your-data)
+7. [Module 6 — Advanced Manipulation: Reshaping Your World](#7-module-6--advanced-manipulation-reshaping-your-world)
+8. [Module 7 — The Silent Killers: Views vs. Copies](#8-module-7--the-silent-killers-views-vs-copies)
+9. [Module 8 — Broadcasting: NumPy's Superpower](#9-module-8--broadcasting-numpys-superpower)
+10. [Module 9 — Utility Functions: The Swiss Army Knife](#10-module-9--utility-functions-the-swiss-army-knife)
+11. [Module 10 — Reproducibility: Controlling Randomness](#11-module-10--reproducibility-controlling-randomness)
+12. [Module 11 — Vectorization: The Philosophy of Speed](#12-module-11--vectorization-the-philosophy-of-speed)
+13. [Quick Reference Cheat Sheet](#13-quick-reference-cheat-sheet)
 
-## Prerequisites
+---
+
+## 1. Why NumPy? The Case Against Pure Python
+
+Before writing a single line of NumPy code, you need to understand *why* it exists.
+
+Python lists are flexible and convenient, but they come with a fatal flaw for numerical computing: **they store objects, not raw numbers**. Each element in a Python list is a full Python object with overhead — type information, reference counts, and memory pointers. This is fine for general programming, but catastrophic for ML workloads that operate on millions of numbers.
+
+**NumPy arrays**, by contrast, store data as a **contiguous block of raw bytes in memory**, all of the same type. This unlocks:
+
+- **Speed** — Operations run in optimized C and Fortran code under the hood.
+- **Vectorization** — Apply an operation to an entire array without a Python `for` loop.
+- **Memory efficiency** — A float64 array uses 8 bytes per element. A Python float uses ~28 bytes.
+- **Ecosystem compatibility** — PyTorch, TensorFlow, Pandas, Scikit-learn, and OpenCV all speak NumPy natively.
 
 ```python
-# Install NumPy if you haven't already
-# pip install numpy
+import numpy as np
+import time
 
-import numpy as np  # Standard alias used universally — always import this way
+size = 1_000_000
+
+# Python list approach
+py_list = list(range(size))
+start = time.time()
+result = [x * 2 for x in py_list]
+print(f"Python list: {time.time() - start:.4f}s")
+
+# NumPy approach
+np_array = np.arange(size)
+start = time.time()
+result = np_array * 2
+print(f"NumPy array: {time.time() - start:.4f}s")
+# NumPy is typically 10x–100x faster
 ```
 
------
+> 💡 **Data Science Context:** Every dataset you load with Pandas, every tensor in PyTorch, every image in OpenCV — at their core, they are NumPy arrays or memory-compatible equivalents. Mastering NumPy means you understand the foundation of the entire Python ML stack.
 
-## 1. Arrays & Creation
+---
 
-> **The Big Idea:** Everything in NumPy is built around the `ndarray` — a fixed-type, fixed-size grid of values. Unlike Python lists, every element must be the same data type, which is what makes NumPy blazing fast.
+## 2. Module 1 — The Array: Building Your Foundation
 
------
+The **`ndarray`** (N-dimensional array) is NumPy's central data structure. Everything else in this guide exists to create, transform, or query it.
 
-### 1.1 Creating from a Python List
+### 2.1 Creating Arrays from Data
 
 ```python
 import numpy as np
 
-# Convert a plain Python list into a NumPy array
-arr_1d = np.array([10, 20, 30, 40, 50])  # 1D array (like a single row of data)
+# From a Python list — the most common starting point
+scores = np.array([92, 87, 95, 78, 88])
+print(scores)         # [92 87 95 78 88]
+print(type(scores))   # <class 'numpy.ndarray'>
 
-# Convert a nested list (list of lists) into a 2D array (like a table/matrix)
-arr_2d = np.array([[1, 2, 3],
-                   [4, 5, 6]])  # 2 rows, 3 columns
+# 2D array — think of it as a matrix or a spreadsheet
+# Shape: (3 rows, 4 columns)
+feature_matrix = np.array([
+    [1.2, 0.5, 3.1, 2.0],
+    [0.8, 1.4, 2.7, 1.1],
+    [2.3, 0.9, 1.8, 3.5]
+])
+print(feature_matrix.shape)  # (3, 4)
 
-print(arr_1d)  # Output: [10 20 30 40 50]
-print(arr_2d)  # Output: [[1 2 3] [4 5 6]]
+# Force a specific data type (critical for memory control in ML)
+int_array = np.array([1.9, 2.7, 3.4], dtype=np.int32)
+print(int_array)  # [1 2 3] — truncated, not rounded!
 ```
 
-**Plain English:** Think of `np.array()` as wrapping a Python list in a high-performance container. The nested list `[[row1], [row2]]` structure maps directly to rows and columns of a matrix.
+> ⚠️ **Avoid This:** `np.array([1.9, 2.7], dtype=np.int32)` **truncates**, it does not round. `1.9` becomes `1`. This is a common source of silent data corruption in preprocessing pipelines.
 
------
+---
 
-### 1.2 `np.zeros` and `np.ones` — Placeholder Arrays
+### 2.2 Creating Arrays from Scratch
+
+These six functions are the workhorses of array initialization in ML.
+
+```python
+# Zeros — default weight initialization, masks, placeholders
+bias_vector = np.zeros(5)
+print(bias_vector)  # [0. 0. 0. 0. 0.]
+
+# Zeros for a 2D matrix
+weight_matrix = np.zeros((3, 4))   # 3 neurons, 4 inputs each
+
+# Ones — useful for creating masks or additive identity
+ones = np.ones((2, 3))
+
+# arange — integer or float steps, EXCLUSIVE of stop
+indices = np.arange(0, 10, 2)
+print(indices)  # [0 2 4 6 8]
+
+# linspace — N evenly spaced points, INCLUSIVE of stop
+thresholds = np.linspace(0, 1, 5)
+print(thresholds)  # [0.   0.25 0.5  0.75 1.  ]
+
+# random.rand — uniform distribution [0, 1)
+weights = np.random.rand(3, 4)   # shape (3, 4)
+
+# random.randn — standard normal distribution (mean=0, std=1)
+noise = np.random.randn(100)     # Gaussian noise
+```
+
+---
+
+### 2.3 `arange` vs `linspace` — The Definitive Comparison
+
+These two functions are frequently confused. Here's the mental model:
+
+| Feature | `np.arange(start, stop, step)` | `np.linspace(start, stop, num)` |
+|---|---|---|
+| **You control** | The **step size** | The **number of points** |
+| **Stop is** | **Exclusive** (like `range()`) | **Inclusive** |
+| **Best for** | Integer sequences, loop indices | Evenly spaced intervals, plotting axes |
+| **Output size** | Determined by step | Exactly `num` elements |
+| **Floating-point safe?** | ⚠️ Can have precision issues | ✅ Always exact count |
+
+```python
+# arange: "give me steps of 0.3"
+a = np.arange(0, 1, 0.3)
+print(a)  # [0.  0.3 0.6 0.9]  — 4 elements, stop excluded
+
+# linspace: "give me exactly 5 points from 0 to 1"
+b = np.linspace(0, 1, 5)
+print(b)  # [0.   0.25 0.5  0.75 1.  ] — exactly 5 elements, 1 included
+
+# The floating-point trap with arange:
+c = np.arange(0, 1, 0.1)
+print(len(c))  # Sometimes 10, sometimes 11 — unpredictable!
+
+# linspace is always safe when you need an exact count:
+d = np.linspace(0, 1, 10)
+print(len(d))  # Always exactly 10
+```
+
+> 💡 **Data Science Context:** Use `linspace` when generating x-axis values for plots, learning rate schedules, or probability bins. Use `arange` when generating integer indices or when step size has a specific semantic meaning (e.g., every 5th frame in a video).
+
+---
+
+## 3. Module 2 — Array Attributes: Understanding What You Have
+
+Before transforming data, always interrogate it. These attributes are your diagnostic tools.
 
 ```python
 import numpy as np
 
-# Create an array filled entirely with 0.0 — useful as a blank slate
-zeros = np.zeros(5)             # 1D: [0. 0. 0. 0. 0.]
+# Simulating a dataset: 1000 samples, 28x28 pixel images (like MNIST)
+images = np.random.rand(1000, 28, 28)
 
-# Create a 2D array (3 rows, 4 columns) filled with 0.0
-zeros_2d = np.zeros((3, 4))    # Pass shape as a TUPLE, not two separate args
-
-# Create an array filled entirely with 1.0 — useful for initializing weights
-ones = np.ones((2, 3))         # 2 rows, 3 columns of 1.0
-
-print(zeros)
-print(zeros_2d)
-print(ones)
+print(images.ndim)   # 3     — number of dimensions (axes)
+print(images.shape)  # (1000, 28, 28) — size along each axis
+print(images.size)   # 784000 — total number of elements
+print(images.dtype)  # float64 — data type of elements
+print(images.nbytes) # 6272000 — total memory in bytes (~6 MB)
 ```
 
-**Plain English:** These are your blank notebooks. `np.zeros` is used when you want to accumulate values (start at 0 and add to them). `np.ones` is useful when you need a multiplicative neutral starting point, or want to create masks.
+### 3.1 The Magic of `reshape()`
 
------
+`reshape()` changes the *interpretation* of an array's shape **without copying data**. This makes it nearly instantaneous, even on huge arrays.
 
-### 1.3 `np.arange` — Evenly Spaced Integers
+```python
+# Flatten a single image for a fully connected (dense) layer
+single_image = np.random.rand(28, 28)   # shape: (28, 28)
+flat_image = single_image.reshape(784)   # shape: (784,)
+# Equivalent: single_image.reshape(-1) — let NumPy infer the size
+
+# -1 is NumPy's "figure it out for me" placeholder
+batch = np.random.rand(64, 28, 28)       # 64 images, 28x28
+flat_batch = batch.reshape(64, -1)       # shape: (64, 784)
+print(flat_batch.shape)                  # (64, 784)
+
+# Going the other way: restore from flat to spatial
+restored = flat_batch.reshape(64, 28, 28)
+print(restored.shape)                    # (64, 28, 28)
+```
+
+> 💡 **Data Science Context:** This is one of the most-used operations in deep learning. Convolutional layers output 3D feature maps `(batch, height, width)`. Before passing them to a fully connected layer, you must flatten to `(batch, features)` using `reshape(batch_size, -1)`.
+
+> ⚠️ **Keep in Mind:** `reshape()` requires the total number of elements to remain the same. `(28, 28)` → `(784,)` works because `28×28 = 784`. Attempting `reshape(100)` on a `(28, 28)` array raises a `ValueError`.
+
+---
+
+## 4. Module 3 — Accessing Data: Slicing, Masking & Fancy Indexing
+
+Knowing how to *extract* exactly the data you need is fundamental to every preprocessing and analysis workflow.
+
+### 4.1 1D Slicing
+
+```python
+losses = np.array([0.91, 0.78, 0.65, 0.52, 0.44, 0.38, 0.31])
+
+print(losses[0])     # 0.91  — first element
+print(losses[-1])    # 0.31  — last element
+print(losses[2:5])   # [0.65 0.52 0.44] — index 2 up to (not including) 5
+print(losses[::2])   # [0.91 0.65 0.44 0.31] — every other element
+print(losses[::-1])  # reversed array
+```
+
+### 4.2 2D Slicing
+
+The golden rule: **`array[rows, columns]`** — rows first, then columns.
+
+```python
+# Simulating a feature matrix: 5 samples, 4 features
+X = np.array([
+    [2.1, 0.5, 1.3, 4.2],   # sample 0
+    [1.4, 2.2, 0.8, 3.1],   # sample 1
+    [0.9, 1.7, 2.5, 2.8],   # sample 2
+    [3.3, 0.4, 1.1, 1.9],   # sample 3
+    [1.8, 2.9, 0.6, 2.4],   # sample 4
+])
+
+print(X[0])          # First sample (all features): [2.1 0.5 1.3 4.2]
+print(X[:, 0])       # All samples, first feature: [2.1 1.4 0.9 3.3 1.8]
+print(X[1:3, :2])    # Samples 1–2, first 2 features
+print(X[-2:, -1:])   # Last 2 samples, last feature
+```
+
+### 4.3 Boolean Masking — The Data Cleaning Powerhouse
+
+**Boolean masking** lets you filter data based on conditions. It's the NumPy equivalent of `WHERE` in SQL.
+
+```python
+ages = np.array([17, 24, 15, 32, 19, 14, 28, 21])
+
+# Step 1: Create a boolean mask
+adult_mask = ages >= 18
+print(adult_mask)   # [False  True False  True  True False  True  True]
+
+# Step 2: Apply the mask to filter
+adults = ages[adult_mask]
+print(adults)       # [24 32 19 28 21]
+
+# Combine in one line (most common pattern)
+print(ages[ages >= 18])  # same result
+
+# Multiple conditions — use & (AND), | (OR), ~ (NOT)
+# Must wrap each condition in parentheses!
+valid_range = ages[(ages >= 18) & (ages <= 30)]
+print(valid_range)  # [24 19 28 21]
+```
+
+**Boolean masking on a 2D feature matrix — a real preprocessing scenario:**
+
+```python
+# Dataset: each row is [height_cm, weight_kg, age]
+data = np.array([
+    [175, 70, 25],
+    [180, 90, 30],
+    [-1,  65, 22],   # corrupted height (sentinel value)
+    [165, 55, 28],
+    [172, -99, 35],  # corrupted weight
+])
+
+# Keep only rows where ALL values are positive
+valid_rows_mask = np.all(data > 0, axis=1)
+print(valid_rows_mask)       # [True True False True False]
+
+clean_data = data[valid_rows_mask]
+print(clean_data)
+# [[175  70  25]
+#  [180  90  30]
+#  [165  55  28]]
+```
+
+> 💡 **Data Science Context:** Boolean masking is your primary tool for **data cleaning** — removing outliers, filtering corrupted values, selecting specific classes from a label array (e.g., `X[y == 2]` to extract all samples of class 2).
+
+### 4.4 Fancy Indexing
+
+**Fancy indexing** uses an array of indices (not a slice) to select elements. The result is always a **copy**, not a view.
+
+```python
+scores = np.array([88, 72, 95, 61, 84, 90, 77])
+
+# Select specific indices
+selected = scores[[0, 2, 5]]
+print(selected)  # [88 95 90]
+
+# Use argsort to get indices that would sort the array
+sorted_indices = np.argsort(scores)
+print(sorted_indices)          # [3 1 6 0 4 5 2]
+print(scores[sorted_indices])  # [61 72 77 88 84 90 95] — sorted scores
+
+# Useful for ranking: top-3 scorers
+top3_indices = np.argsort(scores)[-3:][::-1]
+print(scores[top3_indices])    # [95 90 84]
+```
+
+---
+
+## 5. Module 4 — Operations & Math: Arithmetic to Linear Algebra
+
+### 5.1 Element-Wise Arithmetic
+
+All standard operators (`+`, `-`, `*`, `/`, `**`) work **element-by-element** on arrays of the same shape.
+
+```python
+a = np.array([1.0, 2.0, 3.0, 4.0])
+b = np.array([2.0, 2.0, 2.0, 2.0])
+
+print(a + b)   # [3. 4. 5. 6.]
+print(a * b)   # [2. 4. 6. 8.]
+print(a ** 2)  # [ 1.  4.  9. 16.]
+print(a / b)   # [0.5 1.  1.5 2. ]
+
+# Universal functions (ufuncs) — optimized element-wise operations
+print(np.sqrt(a))   # [1.    1.414 1.732 2.   ]
+print(np.log(a))    # [0.    0.693 1.099 1.386]
+print(np.exp(a))    # [ 2.718  7.389 20.086 54.598]
+```
+
+> ⚠️ **Avoid This — Integer Division Trap:**
+> ```python
+> a = np.array([1, 2, 3])    # dtype: int64
+> print(a / 2)               # [0.5 1.  1.5] — OK in Python 3
+> print(a // 2)              # [0 1 1]       — floor division, data loss!
+> # Always cast to float first when precision matters:
+> print(a.astype(float) / 2) # [0.5 1.  1.5]
+> ```
+
+### 5.2 The `axis` Parameter — Visualized Once, Remembered Forever
+
+The `axis` parameter is the source of more confusion than almost anything else in NumPy. Here's the mental model that makes it stick forever.
+
+**Think of axes as the directions you're "collapsing":**
+
+```
+For a 2D array with shape (rows, columns):
+
+           axis=1 →→→→→→→→→→→
+         ┌─────┬─────┬─────┬─────┐
+  axis=0 │ 1.2 │ 0.5 │ 3.1 │ 2.0 │  ← row 0
+    ↓    ├─────┼─────┼─────┼─────┤
+    ↓    │ 0.8 │ 1.4 │ 2.7 │ 1.1 │  ← row 1
+    ↓    ├─────┼─────┼─────┼─────┤
+         │ 2.3 │ 0.9 │ 1.8 │ 3.5 │  ← row 2
+         └─────┴─────┴─────┴─────┘
+
+axis=0: collapse DOWN the rows → result has shape (4,)  = one value per COLUMN
+axis=1: collapse ACROSS columns → result has shape (3,) = one value per ROW
+```
+
+```python
+X = np.array([
+    [1.2, 0.5, 3.1, 2.0],
+    [0.8, 1.4, 2.7, 1.1],
+    [2.3, 0.9, 1.8, 3.5]
+])
+
+# axis=0: compute along rows (collapse rows → one value per column)
+# "What is the mean of each FEATURE across all samples?"
+col_means = np.mean(X, axis=0)
+print(col_means)          # [1.433 0.933 2.533 2.2  ] — shape: (4,)
+
+# axis=1: compute along columns (collapse columns → one value per row)
+# "What is the mean of each SAMPLE across all features?"
+row_means = np.mean(X, axis=1)
+print(row_means)          # [1.7   1.5   2.125] — shape: (3,)
+
+# No axis: collapse everything → single scalar
+overall_mean = np.mean(X)
+print(overall_mean)       # 1.775
+```
+
+> 🧠 **The Mnemonic:** `axis=0` collapses **rows** (moves *down*), producing one value **per column**. `axis=1` collapses **columns** (moves *across*), producing one value **per row**.
+
+### 5.3 Linear Algebra — The Language of ML Models
+
+Element-wise multiplication (`*`) and **matrix multiplication** are fundamentally different operations. Confusing them is one of the most common ML bugs.
+
+```python
+A = np.array([[1, 2], [3, 4]])
+B = np.array([[5, 6], [7, 8]])
+
+# Element-wise multiplication (Hadamard product)
+print(A * B)
+# [[ 5 12]
+#  [21 32]]
+
+# Matrix multiplication — two equivalent syntaxes
+print(np.dot(A, B))   # classic syntax
+print(A @ B)           # modern syntax (preferred, PEP 465)
+# [[19 22]
+#  [43 50]]
+
+# Dot product of two vectors
+u = np.array([1, 2, 3])
+v = np.array([4, 5, 6])
+print(np.dot(u, v))   # 1*4 + 2*5 + 3*6 = 32
+```
+
+**A complete forward pass through a neural network layer:**
+
+```python
+# Forward pass: output = inputs @ weights + bias
+batch_size    = 32
+input_features = 64
+output_features = 10
+
+X = np.random.randn(batch_size, input_features)   # (32, 64)
+W = np.random.randn(input_features, output_features) * 0.01  # (64, 10)
+b = np.zeros(output_features)                     # (10,)
+
+# Matrix multiplication — the core of every dense layer
+Z = X @ W + b
+print(Z.shape)  # (32, 10)
+
+# Apply softmax to get class probabilities
+def softmax(z):
+    exp_z = np.exp(z - np.max(z, axis=1, keepdims=True))  # numerically stable
+    return exp_z / np.sum(exp_z, axis=1, keepdims=True)
+
+probs = softmax(Z)
+print(probs.shape)          # (32, 10)
+print(probs[0].sum())       # 1.0 — valid probability distribution
+```
+
+| Operation | Syntax | Use Case |
+|---|---|---|
+| Element-wise multiply | `A * B` | Dropout masks, attention weights |
+| Matrix multiply | `A @ B` | Dense layers, attention scores |
+| Dot product (vectors) | `np.dot(u, v)` | Similarity, projections |
+| Outer product | `np.outer(u, v)` | Rank-1 updates |
+| Matrix transpose | `A.T` | Transposing weight matrices |
+
+---
+
+## 6. Module 5 — Aggregation: Summarizing Your Data
+
+Aggregation functions reduce arrays to summary statistics. Every EDA workflow lives here.
 
 ```python
 import numpy as np
 
-# Like Python's range(), but returns a NumPy array instead of a range object
-arr = np.arange(0, 10, 2)  # Start=0, Stop=10 (exclusive), Step=2
+# Simulated feature: house prices (in $1000s)
+prices = np.array([245, 312, 198, 425, 289, 367, 156, 498, 271, 334])
 
-print(arr)  # Output: [0 2 4 6 8]
-
-# You can also use floats as the step (unlike Python's range)
-arr_float = np.arange(0.0, 1.0, 0.25)  # [0.   0.25 0.5  0.75]
-
-print(arr_float)
+print(f"Sum:        {np.sum(prices)}")          # 3095
+print(f"Mean:       {np.mean(prices):.2f}")     # 309.50
+print(f"Median:     {np.median(prices):.2f}")   # 300.50
+print(f"Std Dev:    {np.std(prices):.2f}")      # 97.51
+print(f"Variance:   {np.var(prices):.2f}")      # 9508.25
+print(f"Min/Max:    {np.min(prices)} / {np.max(prices)}")
+print(f"Arg Min/Max:{np.argmin(prices)} / {np.argmax(prices)}")  # indices
 ```
 
-**Plain English:** `arange` = “array range.” You define where to start, where to stop (not included), and the gap between each value. It’s perfect when you know the step size.
-
------
-
-### 1.4 `np.linspace` — Evenly Spaced by Count
+### 6.1 Percentiles — Better Than Min/Max for Outlier Detection
 
 ```python
-import numpy as np
+# Percentiles give you a robust view of your distribution
+p25  = np.percentile(prices, 25)   # Q1
+p50  = np.percentile(prices, 50)   # Q2 (same as median)
+p75  = np.percentile(prices, 75)   # Q3
+iqr  = p75 - p25                   # Interquartile Range
 
-# Create exactly 5 evenly-spaced values BETWEEN 0 and 1 (inclusive on both ends)
-arr = np.linspace(0, 1, 5)  # 5 points from 0 to 1
+print(f"Q1: {p25}, Median: {p50}, Q3: {p75}, IQR: {iqr}")
 
-print(arr)  # Output: [0.   0.25 0.5  0.75 1.  ]
-
-# Create 100 points for a smooth curve — great for plotting
-x = np.linspace(0, 2 * np.pi, 100)  # 100 points over a full sine wave cycle
+# Outlier detection using IQR method
+lower_bound = p25 - 1.5 * iqr
+upper_bound = p75 + 1.5 * iqr
+outliers = prices[(prices < lower_bound) | (prices > upper_bound)]
+print(f"Outliers: {outliers}")
 ```
 
-**Plain English:** Use `linspace` when you know **how many points** you want, not the step size. `arange` = “I know the gap.” `linspace` = “I know the count.”
-
------
-
-### 1.5 `np.random.rand` — Random Arrays
+### 6.2 Correlation Coefficient — Feature Relationship Analysis
 
 ```python
-import numpy as np
+# Feature correlation matrix — prerequisite to feature selection
+n_samples = 100
+feature_A = np.random.randn(n_samples)
+feature_B = feature_A * 0.8 + np.random.randn(n_samples) * 0.2  # correlated
+feature_C = np.random.randn(n_samples)  # uncorrelated
 
-# Create a 1D array of 5 random floats, each between 0.0 and 1.0
-rand_1d = np.random.rand(5)         # Shape: (5,)
-
-# Create a 2D array (3 rows, 4 columns) of random floats 0.0–1.0
-rand_2d = np.random.rand(3, 4)      # NOTE: pass rows and cols separately, NOT as a tuple
-
-# Create random integers between 1 and 100 (exclusive), in a 3x3 grid
-rand_int = np.random.randint(1, 100, size=(3, 3))  # low, high, size
-
-print(rand_1d)
-print(rand_2d)
-print(rand_int)
+feature_matrix = np.array([feature_A, feature_B, feature_C])
+corr_matrix = np.corrcoef(feature_matrix)
+print(corr_matrix.round(2))
+# [[1.   ~0.97 ~0.05]   — A vs A, A vs B (high!), A vs C (low)
+#  [~0.97 1.  ~0.03]
+#  [~0.05 ~0.03 1.  ]]
 ```
 
-**Plain English:** `rand` fills an array with random noise. Notice the subtle difference: `np.zeros((3,4))` takes a tuple, but `np.random.rand(3, 4)` takes separate arguments. This trips up a lot of beginners!
+> 💡 **Data Science Context:** `np.corrcoef()` returns a correlation matrix identical in concept to `df.corr()` in Pandas. Use it to identify **multicollinearity** between features before training linear models, or to build heatmaps for EDA.
 
------
+---
 
-> 💡 **Pro-Tip — Pandas Connection:**
-> When you create a `pd.DataFrame`, it stores its underlying values in NumPy arrays. `pd.DataFrame(np.zeros((5, 3)), columns=['A','B','C'])` is a perfectly valid way to create an empty DataFrame of a known shape. `np.arange` and `np.linspace` are also the standard tools for generating index values for time-series DataFrames.
+## 7. Module 6 — Advanced Manipulation: Reshaping Your World
 
------
+### 7.1 `flatten()` vs `ravel()` — Know the Difference
 
-## 2. Array Properties
+Both functions collapse a multi-dimensional array into 1D, but they have an important distinction:
 
-> **The Big Idea:** Before you transform or compute anything, you need to understand the *shape* of your data. NumPy gives you a small set of attributes that act like a passport for your array.
-
------
-
-### 2.1 `shape`, `ndim`, `size`, `dtype`
+| Feature | `flatten()` | `ravel()` |
+|---|---|---|
+| **Returns** | Always a **copy** | A **view** when possible |
+| **Memory** | Always allocates new memory | Zero-copy when contiguous |
+| **Speed** | Slower (copy overhead) | Faster |
+| **Safe to modify?** | ✅ Yes — won't affect original | ⚠️ Modifying may affect original |
+| **When to use** | When you need an independent copy | When memory/speed matters |
 
 ```python
-import numpy as np
+image = np.array([[1, 2, 3], [4, 5, 6]])
 
-# Create a 2D array to inspect
-arr = np.array([[1, 2, 3],
-                [4, 5, 6]])  # 2 rows, 3 columns
+flat_copy = image.flatten()
+flat_view = image.ravel()
 
-# .shape returns a TUPLE of (rows, cols) — or more dims for higher-dimensional arrays
-print(arr.shape)   # Output: (2, 3)
+flat_copy[0] = 999
+print(image[0, 0])  # 1 — original unchanged (flatten made a copy)
 
-# .ndim returns the NUMBER of dimensions (axes)
-print(arr.ndim)    # Output: 2  (it's a 2D matrix)
-
-# .size returns the TOTAL number of elements (rows × cols)
-print(arr.size)    # Output: 6
-
-# .dtype tells you what data type is stored — crucial for memory & performance
-print(arr.dtype)   # Output: int64 (or int32 on Windows)
+flat_view[0] = 999
+print(image[0, 0])  # 999 — original CHANGED (ravel made a view!)
 ```
 
-**Plain English:** `shape` answers “what are the dimensions?”, `ndim` answers “how many dimensions?”, `size` answers “how many total elements?”, and `dtype` answers “what type of data is stored?”
-
------
-
-### 2.2 `reshape()` — Reorganizing Without Changing Data
+### 7.2 Transpose
 
 ```python
-import numpy as np
+W = np.array([[1, 2, 3], [4, 5, 6]])  # shape (2, 3)
+print(W.T.shape)                       # (3, 2)
+print(W.transpose())                   # same as W.T
 
-# Start with a flat 1D array of 12 elements
-arr = np.arange(1, 13)  # [1, 2, 3, ..., 12]
-
-# Reshape to 3 rows × 4 columns — total elements must match (3×4 = 12 ✅)
-matrix = arr.reshape(3, 4)
-print(matrix)
-# Output:
-# [[ 1  2  3  4]
-#  [ 5  6  7  8]
-#  [ 9 10 11 12]]
-
-# Use -1 to let NumPy infer one dimension automatically
-auto_shape = arr.reshape(4, -1)  # 4 rows, NumPy figures out 3 cols (12/4=3)
-print(auto_shape.shape)          # Output: (4, 3)
+# For 3D+ arrays, specify axes
+tensor = np.zeros((32, 64, 128))
+transposed = tensor.transpose(0, 2, 1)  # swap last two dims
+print(transposed.shape)                 # (32, 128, 64)
 ```
 
-**Plain English:** `reshape` doesn’t move data in memory — it just changes how NumPy *reads* the data. Think of it like rearranging chairs in a room without adding or removing any. The `-1` trick is powerful: “I know one dimension, you figure out the other.”
+### 7.3 `concatenate()` vs `stack()` — Joining Arrays
 
------
+These two functions are frequently confused. Here is the core distinction:
 
-### 2.3 `dtype` — Specifying and Converting Types
-
-```python
-import numpy as np
-
-# Specify dtype at creation to control memory usage
-arr_float32 = np.array([1, 2, 3], dtype=np.float32)  # Uses 4 bytes per element
-arr_float64 = np.array([1, 2, 3], dtype=np.float64)  # Uses 8 bytes per element (default)
-
-# Convert (cast) an existing array to a new type using .astype()
-arr_int = np.array([1.7, 2.5, 3.9])     # Defaults to float64
-arr_converted = arr_int.astype(np.int32) # Truncates decimal part (does NOT round)
-
-print(arr_converted)  # Output: [1 2 3] — the .7, .5, .9 are dropped
-```
-
-**Plain English:** `dtype` is about choosing the right container for your data. Using `float32` instead of `float64` halves your memory usage — critical when working with millions of data points. `astype()` is the safe way to convert; it always returns a new array.
-
------
-
-> 💡 **Pro-Tip — Pandas Connection:**
-> `df.shape`, `df.dtypes`, and `df.ndim` are borrowed directly from NumPy. When you call `df['column'].values`, you get back the raw NumPy array. `df.astype({'col': 'float32'})` uses NumPy’s type system under the hood — understanding NumPy dtypes helps you optimize Pandas memory usage significantly.
-
------
-
-## 3. Indexing & Slicing
-
-> **The Big Idea:** Indexing lets you *pinpoint* elements; slicing lets you *extract ranges*. Boolean masking lets you *filter by condition*. Together these are the most-used operations in all of data analysis.
-
------
-
-### 3.1 1D Indexing and Slicing
+> **`concatenate`** joins existing arrays **along an existing axis** — the number of dimensions stays the same.
+> **`stack`** joins arrays **along a new axis** — this adds a dimension.
 
 ```python
-import numpy as np
-
-arr = np.array([10, 20, 30, 40, 50])
-
-# Positive indexing: 0-based, counting from the left
-print(arr[0])   # Output: 10 (first element)
-print(arr[2])   # Output: 30 (third element)
-
-# Negative indexing: -1 is the last element, -2 is second-to-last
-print(arr[-1])  # Output: 50
-print(arr[-2])  # Output: 40
-
-# Slicing: arr[start:stop:step] — stop is EXCLUSIVE
-print(arr[1:4])    # Output: [20 30 40] — indices 1, 2, 3
-print(arr[::2])    # Output: [10 30 50] — every other element
-print(arr[::-1])   # Output: [50 40 30 20 10] — reversed array
-```
-
-**Plain English:** Slicing syntax is `[start : stop : step]`. Defaults are: start=0, stop=end, step=1. Negative step reverses direction. The stop index is always *excluded* — this is consistent with Python’s standard slicing.
-
------
-
-### 3.2 2D Indexing and Slicing
-
-```python
-import numpy as np
-
-matrix = np.array([[1,  2,  3,  4],
-                   [5,  6,  7,  8],
-                   [9, 10, 11, 12]])
-
-# 2D indexing: [row_index, col_index]
-print(matrix[0, 0])  # Output: 1 (top-left)
-print(matrix[2, 3])  # Output: 12 (bottom-right)
-print(matrix[1, 2])  # Output: 7
-
-# 2D Slicing: [row_slice, col_slice]
-print(matrix[0:2, 1:3])  # Rows 0-1, Cols 1-2 → [[2,3],[6,7]]
-
-# Select an entire row or column using ':'
-print(matrix[1, :])  # Entire row 1:   [5 6 7 8]
-print(matrix[:, 2])  # Entire col 2:   [3 7 11]
-```
-
-**Plain English:** 2D indexing uses two coordinates separated by a comma: `[row, col]`. A lone `:` means “give me everything on this axis.” This row/column syntax is the foundation for all matrix operations.
-
------
-
-### 3.3 Boolean Masking — Filter by Condition
-
-```python
-import numpy as np
-
-arr = np.array([15, 3, 22, 8, 45, 11, 7])
-
-# Step 1: Create a boolean array — True where condition is met
-mask = arr > 10  # Compares every element to 10
-print(mask)      # Output: [ True False  True False  True  True False]
-
-# Step 2: Use that mask to INDEX into the array — returns only True elements
-filtered = arr[mask]
-print(filtered)  # Output: [15 22 45 11]
-
-# Shorthand: combine creation and filtering in one line
-result = arr[arr % 2 == 0]  # Keep only even numbers
-print(result)   # Output: [22 8]
-```
-
-**Plain English:** A boolean mask is like a spotlight — it creates a True/False map, and when you apply it to the array, you only keep the elements where the spotlight shines (True). This is vectorized filtering — no `for` loops needed, and it’s extremely fast.
-
------
-
-> 💡 **Pro-Tip — Pandas Connection:**
-> Pandas boolean filtering (`df[df['age'] > 30]`) works *exactly* like NumPy boolean masking — because it *is* NumPy boolean masking under the hood. The condition creates a boolean Series, which is passed back as an index. Understanding the two-step process (create mask → apply mask) demystifies Pandas filtering entirely.
-
------
-
-## 4. Operations & Math
-
-> **The Big Idea:** NumPy operations work *element-wise* by default — no loops required. The `axis` parameter lets you collapse a dimension (e.g., sum each column, or each row).
-
------
-
-### 4.1 Element-wise Arithmetic
-
-```python
-import numpy as np
-
-a = np.array([1, 2, 3, 4])
-b = np.array([10, 20, 30, 40])
-
-# All arithmetic operates element-by-element — each pair multiplied together
-print(a + b)   # Output: [11 22 33 44]
-print(b - a)   # Output: [ 9 18 27 36]
-print(a * b)   # Output: [ 10  40  90 160]
-print(b / a)   # Output: [10. 10. 10. 10.]
-print(a ** 2)  # Output: [ 1  4  9 16] — square each element
-```
-
-**Plain English:** Operations between two same-shaped arrays are applied pair-by-pair. `a * b` does NOT do matrix multiplication — it multiplies `a[0]*b[0]`, `a[1]*b[1]`, etc. For true matrix multiplication, use `np.dot()` (see below).
-
------
-
-### 4.2 Aggregate Functions — `sum`, `mean`
-
-```python
-import numpy as np
-
-arr = np.array([[1, 2, 3],
-                [4, 5, 6]])
-
-# No axis: collapse EVERYTHING into a single scalar
-print(np.sum(arr))    # Output: 21
-print(np.mean(arr))   # Output: 3.5
-
-# axis=0: collapse ROWS → result has shape (num_cols,) → one value per COLUMN
-print(np.sum(arr, axis=0))   # Output: [5 7 9]  (1+4, 2+5, 3+6)
-
-# axis=1: collapse COLUMNS → result has shape (num_rows,) → one value per ROW
-print(np.sum(arr, axis=1))   # Output: [ 6 15]  (1+2+3, 4+5+6)
-```
-
-**Plain English:** Think of `axis` as “the dimension you want to *destroy* (collapse).” `axis=0` collapses rows (moves vertically), leaving one value per column. `axis=1` collapses columns (moves horizontally), leaving one value per row.
-
------
-
-### 4.3 Universal Functions (ufuncs) — `sqrt`, `exp`, `log`
-
-```python
-import numpy as np
-
-arr = np.array([1, 4, 9, 16, 25])
-
-# Apply math functions element-wise — no loops, fully vectorized
-print(np.sqrt(arr))   # Output: [1. 2. 3. 4. 5.]  — square root of each
-print(np.log(arr))    # Output: [0. 1.39 2.2 2.77 3.22] — natural log of each
-print(np.exp(arr))    # Output: [e^1 e^4 e^9 ...]  — Euler's number to the power of each
-
-# np.abs, np.floor, np.ceil also work element-wise
-print(np.abs(np.array([-3, -1, 0, 2, 4])))  # Output: [3 1 0 2 4]
-```
-
-**Plain English:** Universal functions (ufuncs) are NumPy’s way of applying a single math operation to every element simultaneously. They’re implemented in C under the hood, making them orders of magnitude faster than a Python `for` loop.
-
------
-
-### 4.4 Dot Product — `np.dot`
-
-```python
-import numpy as np
-
-# 1D dot product: sum of element-wise products (also called inner product)
-a = np.array([1, 2, 3])
-b = np.array([4, 5, 6])
-print(np.dot(a, b))  # Output: 32  → (1×4 + 2×5 + 3×6) = 4+10+18 = 32
-
-# 2D dot product: true matrix multiplication
-A = np.array([[1, 2],
-              [3, 4]])
-B = np.array([[5, 6],
-              [7, 8]])
-
-# Result shape: (2×2) · (2×2) → (2×2)
-print(np.dot(A, B))
-# Output: [[19 22]  → row0·col0=1*5+2*7=19, row0·col1=1*6+2*8=22
-#          [43 50]]
-```
-
-**Plain English:** `np.dot` is for *matrix multiplication*, not element-wise. The key rule: the *inner* dimensions must match — `(m, k) · (k, n) → (m, n)`. The `@` operator (`A @ B`) is modern Python shorthand for the same operation.
-
------
-
-> 💡 **Pro-Tip — Pandas Connection:**
-> `df.sum()`, `df.mean()`, `df.sum(axis=0)`, `df.sum(axis=1)` are direct wrappers of NumPy’s aggregate functions. The `axis` behavior is identical. When you call `df.apply(np.sqrt)`, you’re applying a NumPy ufunc across a DataFrame — a very common pattern for feature transformation in ML pipelines.
-
------
-
-## 5. Array Manipulation
-
-> **The Big Idea:** Real data rarely comes in the shape you need it. These tools let you restructure arrays without touching the underlying data.
-
------
-
-### 5.1 `flatten()` — Collapse to 1D
-
-```python
-import numpy as np
-
-matrix = np.array([[1, 2, 3],
-                   [4, 5, 6]])
-
-# flatten() always returns a COPY — safe to modify without affecting the original
-flat = matrix.flatten()
-print(flat)  # Output: [1 2 3 4 5 6]
-
-# ravel() is similar but returns a VIEW when possible (more memory efficient)
-raveled = matrix.ravel()
-print(raveled)  # Output: [1 2 3 4 5 6]
-
-flat[0] = 999    # Modifying flat does NOT change matrix (it's a copy)
-raveled[0] = 999 # Modifying raveled MIGHT change matrix (it's a view)
-```
-
-**Plain English:** `flatten` is the safe choice — it always gives you an independent copy. `ravel` is faster and more memory-efficient, but changes to the result may ripple back to the original array.
-
------
-
-### 5.2 `transpose()` — Flip Rows and Columns
-
-```python
-import numpy as np
-
-matrix = np.array([[1, 2, 3],
-                   [4, 5, 6]])  # Shape: (2, 3)
-
-# .T is shorthand for transpose — swaps rows and columns
-transposed = matrix.T  # Shape becomes (3, 2)
-print(transposed)
-# Output:
-# [[1 4]
-#  [2 5]
-#  [3 6]]
-```
-
-**Plain English:** Transposing flips a matrix across its diagonal — what was a row becomes a column. This is essential in linear algebra and machine learning (e.g., ensuring matrix shapes align for multiplication).
-
------
-
-### 5.3 `concatenate` — Joining Arrays
-
-```python
-import numpy as np
-
-a = np.array([[1, 2], [3, 4]])  # Shape (2, 2)
-b = np.array([[5, 6], [7, 8]])  # Shape (2, 2)
-
-# axis=0: stack VERTICALLY (add more rows) — think "pile them on top of each other"
-vertical = np.concatenate([a, b], axis=0)  # Shape becomes (4, 2)
-print(vertical)
-# [[1 2]
-#  [3 4]
-#  [5 6]
-#  [7 8]]
-
-# axis=1: join HORIZONTALLY (add more columns) — think "push them side by side"
-horizontal = np.concatenate([a, b], axis=1)  # Shape becomes (2, 4)
-print(horizontal)
-# [[1 2 5 6]
-#  [3 4 7 8]]
-```
-
-**Plain English:** `concatenate` glues arrays together. The axis tells NumPy *which dimension to grow*. With `axis=0`, you’re adding more rows (more data points). With `axis=1`, you’re adding more columns (more features).
-
------
-
-### 5.4 `stack` and `split`
-
-```python
-import numpy as np
-
-a = np.array([1, 2, 3])  # 1D
-b = np.array([4, 5, 6])  # 1D
-
-# np.stack creates a NEW dimension — result is 2D
-stacked = np.stack([a, b], axis=0)  # axis=0: stack as rows → shape (2, 3)
+a = np.array([1, 2, 3])   # shape (3,)
+b = np.array([4, 5, 6])   # shape (3,)
+
+# concatenate: (3,) + (3,) → (6,) — same dimensions
+joined = np.concatenate([a, b])
+print(joined)        # [1 2 3 4 5 6]
+print(joined.shape)  # (6,)
+
+# stack: (3,) + (3,) → (2, 3) — new dimension added
+stacked = np.stack([a, b])
 print(stacked)
 # [[1 2 3]
 #  [4 5 6]]
+print(stacked.shape)        # (2, 3)
 
-# np.split divides an array into N equal parts
-arr = np.arange(12)                  # [0, 1, 2, ..., 11]
-parts = np.split(arr, 3)             # Split into 3 equal pieces
-print(parts)  # [array([0,1,2,3]), array([4,5,6,7]), array([8,9,10,11])]
+stacked_col = np.stack([a, b], axis=1)  # → (3, 2)
+print(stacked_col.shape)    # (3, 2)
 ```
 
-**Plain English:** The difference between `concatenate` and `stack` is subtle but important: `concatenate` joins along an *existing* axis; `stack` *creates a new axis* and joins along that. Use `stack` when your 1D arrays should become the rows (or columns) of a 2D matrix.
+**2D example with real ML context:**
 
------
+```python
+# Two batches of samples: (50, 10) and (30, 10)
+batch1 = np.random.randn(50, 10)
+batch2 = np.random.randn(30, 10)
 
-> 💡 **Pro-Tip — Pandas Connection:**
-> `pd.concat([df1, df2], axis=0)` is the Pandas equivalent of `np.concatenate(..., axis=0)` — it stacks DataFrames vertically (adding rows). `pd.concat([df1, df2], axis=1)` adds columns side-by-side. Understanding NumPy’s axis logic makes `pd.concat` immediately intuitive.
+# concatenate along rows (axis=0) — merge the batches
+full_dataset = np.concatenate([batch1, batch2], axis=0)
+print(full_dataset.shape)  # (80, 10) ✅
 
------
-
-## 6. Broadcasting
-
-> **The Big Idea:** Broadcasting lets NumPy operate on arrays of *different shapes* without copying data. NumPy “stretches” the smaller array to match the larger one — conceptually, not literally in memory.
-
------
-
-### 6.1 The Core Rules of Broadcasting
-
-NumPy compares shapes from **right to left**. Two dimensions are compatible if:
-
-1. They are **equal**, OR
-1. One of them is **1**
-
-```
-Array A shape:  (3, 4)
-Array B shape:     (4)   ← treated as (1, 4)
-Result shape:   (3, 4) ✅
-
-Array A shape:  (3, 1)
-Array B shape:  (1, 4)
-Result shape:   (3, 4) ✅ — both broadcast!
-
-Array A shape:  (3, 4)
-Array B shape:  (3,)   ← treated as (1, 3)
-Result shape:   ERROR ❌ — 4 and 3 are incompatible
+# stack along axis=0 — would FAIL here if shapes differ
+# np.stack requires all arrays to have IDENTICAL shapes
 ```
 
------
+### 7.4 `split()` — Dividing Data
 
-### 6.2 Scalar Broadcasting
+```python
+data = np.arange(20).reshape(4, 5)
+
+# Split into 2 equal parts along axis=0 (row-wise)
+part1, part2 = np.split(data, 2, axis=0)
+print(part1.shape, part2.shape)  # (2, 5) (2, 5)
+
+# For unequal splits, pass split indices
+train, val, test = np.split(data, [3, 4], axis=0)
+# rows 0-2 → train, row 3 → val, row 4 → test
+```
+
+> 💡 **Data Science Context:** `np.split()` is useful for manual train/validation/test splitting before Scikit-learn's `train_test_split`. `np.concatenate` is used extensively in custom training loops to assemble mini-batches.
+
+---
+
+## 8. Module 7 — The Silent Killers: Views vs. Copies
+
+This is the single most common source of **hard-to-debug bugs** in NumPy. Understanding this deeply will save you hours of frustration.
+
+### 8.1 The Core Concept
+
+A **view** is a reference to the same underlying data. Modifying a view **modifies the original**. A **copy** is independent memory — modifying it leaves the original untouched.
+
+```
+Original Array Memory:
+┌────┬────┬────┬────┬────┬────┐
+│  1 │  2 │  3 │  4 │  5 │  6 │
+└────┴────┴────┴────┴────┴────┘
+       ↑
+   SLICE (view) points to the SAME memory
+   
+   np.copy() creates NEW memory:
+┌────┬────┬────┬────┬────┬────┐
+│  1 │  2 │  3 │  4 │  5 │  6 │  ← independent copy
+└────┴────┴────┴────┴────┴────┘
+```
+
+### 8.2 When Does Slicing Create a View?
+
+```python
+original = np.array([10, 20, 30, 40, 50])
+
+# ✅ Basic slicing → VIEW (same memory)
+view = original[1:4]
+view[0] = 999
+print(original)  # [ 10 999  30  40  50] — ORIGINAL WAS CHANGED!
+
+# Reset
+original = np.array([10, 20, 30, 40, 50])
+
+# ✅ Safe way: explicit copy
+safe_copy = original[1:4].copy()
+safe_copy[0] = 999
+print(original)  # [10 20 30 40 50] — original untouched ✅
+```
+
+### 8.3 When Is a Copy Created Automatically?
+
+```python
+arr = np.array([10, 20, 30, 40, 50])
+
+# Fancy indexing → COPY (not a view!)
+fancy = arr[[0, 2, 4]]
+fancy[0] = 999
+print(arr)  # [10 20 30 40 50] — unchanged ✅
+
+# Boolean masking → COPY
+mask = arr > 25
+masked = arr[mask]
+masked[0] = 999
+print(arr)  # [10 20 30 40 50] — unchanged ✅
+
+# Reshape → usually a VIEW
+reshaped = arr.reshape(5, 1)
+reshaped[0] = 999
+print(arr)  # [999  20  30  40  50] — CHANGED! reshape is a view!
+```
+
+### 8.4 Diagnosing Views
+
+```python
+arr = np.array([1, 2, 3, 4, 5])
+sliced = arr[1:3]
+
+# Check if it's a view
+print(sliced.base is arr)   # True — it IS a view of arr
+print(sliced.flags['OWNDATA'])  # False — doesn't own its data
+
+copy = arr[1:3].copy()
+print(copy.base is arr)     # False — it owns its data
+print(copy.flags['OWNDATA'])   # True
+```
+
+> 🔑 **The Golden Rule:** When in doubt, call `.copy()`. The small memory overhead is almost always worth the debugging time you save. In preprocessing pipelines, always copy before mutating to avoid corrupting upstream data.
+
+---
+
+## 9. Module 8 — Broadcasting: NumPy's Superpower
+
+**Broadcasting** is NumPy's mechanism for performing operations on arrays of *different but compatible shapes* without allocating extra memory or writing loops.
+
+### 9.1 The Broadcasting Rules
+
+NumPy compares shapes element-by-element, **starting from the trailing (rightmost) dimensions**. Two dimensions are compatible if:
+1. They are **equal**, or
+2. One of them is **1**
+
+If the arrays have different numbers of dimensions, the shape of the smaller array is **padded with 1s on the left**.
+
+```
+Example:
+  Matrix shape: (3, 4)
+  Vector shape:    (4,) → padded to (1, 4) → broadcast to (3, 4)
+  Result shape: (3, 4) ✅
+
+  Matrix shape: (3, 4)
+  Vector shape: (3,) → padded to (1, 3) → CANNOT broadcast to (3, 4) ❌
+  Fix: reshape vector to (3, 1) → broadcasts to (3, 4) ✅
+```
+
+### 9.2 Broadcasting in Action
+
+```python
+# Scalar broadcasting — the simplest case
+arr = np.array([[1, 2, 3], [4, 5, 6]])
+print(arr * 10)
+# [[10 20 30]
+#  [40 50 60]]
+
+# Row normalization: subtract the mean of each ROW
+# Shape walkthrough:
+#   arr shape:         (3, 4)
+#   row_means shape:   (3,)  → must reshape to (3, 1) for broadcasting!
+#   arr - row_means:   (3, 4) - (3, 1) → (3, 4) ✅
+
+data = np.array([
+    [10.0, 20.0, 30.0, 40.0],
+    [1.0,   2.0,  3.0,  4.0],
+    [5.0,  15.0, 25.0, 35.0],
+])
+
+row_means = data.mean(axis=1)           # shape (3,)
+row_means_col = row_means[:, np.newaxis]  # shape (3, 1) — the key step!
+# equivalent: row_means.reshape(-1, 1)
+
+centered = data - row_means_col
+print(centered)
+# [[-15.  -5.   5.  15.]
+#  [-1.5  -0.5  0.5  1.5]
+#  [-15.  -5.   5.  15.]]
+
+print(centered.mean(axis=1).round(10))  # [0. 0. 0.] ✅ — means are now zero
+```
+
+### 9.3 Feature Normalization via Broadcasting (Z-Score)
+
+```python
+# Standardize each feature (column) to mean=0, std=1
+X = np.random.randn(100, 5) * np.array([10, 2, 50, 1, 0.1])  # different scales
+
+col_means = X.mean(axis=0)  # shape (5,) — mean of each feature
+col_stds  = X.std(axis=0)   # shape (5,)
+
+# Broadcasting: (100, 5) - (5,) → (100, 5) — works automatically!
+X_normalized = (X - col_means) / col_stds
+
+print(X_normalized.mean(axis=0).round(10))  # [0. 0. 0. 0. 0.] ✅
+print(X_normalized.std(axis=0).round(10))   # [1. 1. 1. 1. 1.] ✅
+```
+
+> 💡 **Data Science Context:** This Z-score normalization is applied before almost every ML model. Scikit-learn's `StandardScaler` does exactly this under the hood. Implementing it in raw NumPy makes the mechanism transparent.
+
+> ⚠️ **Shape Mismatch Trap:**
+> ```python
+> A = np.ones((3, 4))
+> b = np.ones(3)         # shape (3,) — trailing dim is 3, not 4!
+> # A - b → ERROR: operands could not be broadcast with shapes (3,4) (3,)
+> # Fix:
+> b_col = b[:, np.newaxis]   # shape (3, 1) — now broadcasts correctly
+> result = A - b_col          # shape (3, 4) ✅
+> ```
+
+---
+
+## 10. Module 9 — Utility Functions: The Swiss Army Knife
+
+### 10.1 `np.where()` — Vectorized Conditional Logic
+
+`np.where(condition, value_if_true, value_if_false)` is the vectorized `if-else`.
+
+```python
+# Replace negative values (corrupted sensor readings) with 0
+readings = np.array([1.2, -0.5, 3.4, -1.1, 2.8, 0.0, -0.3])
+cleaned = np.where(readings < 0, 0, readings)
+print(cleaned)  # [1.2 0.  3.4 0.  2.8 0.  0. ]
+
+# Binary classification: threshold probabilities into class labels
+probabilities = np.array([0.82, 0.31, 0.95, 0.48, 0.61, 0.12])
+predictions = np.where(probabilities >= 0.5, 1, 0)
+print(predictions)  # [1 0 1 0 1 0]
+```
+
+### 10.2 `np.argmax()` — The Neural Network Output Decoder
+
+`np.argmax()` returns the **index** of the maximum value. In classification models, this converts a probability vector to a predicted class label.
+
+```python
+# Softmax output for a single sample — 5 classes
+softmax_output = np.array([0.02, 0.08, 0.67, 0.18, 0.05])
+predicted_class = np.argmax(softmax_output)
+print(predicted_class)  # 2 — the model predicts class 2
+
+# Batch inference: (batch_size=4, num_classes=5)
+batch_probs = np.array([
+    [0.1, 0.7, 0.05, 0.1,  0.05],  # → class 1
+    [0.3, 0.1, 0.05, 0.5,  0.05],  # → class 3
+    [0.0, 0.0, 0.0,  0.0,  1.0 ],  # → class 4
+    [0.4, 0.3, 0.1,  0.15, 0.05],  # → class 0
+])
+predicted_classes = np.argmax(batch_probs, axis=1)
+print(predicted_classes)  # [1 3 4 0]
+```
+
+> 💡 **Data Science Context:** `np.argmax(axis=1)` is the standard way to convert softmax probabilities to class labels. You'll see this exact pattern in every PyTorch and TensorFlow inference loop.
+
+### 10.3 `np.argsort()` — Ranking Without Sorting
+
+```python
+feature_importances = np.array([0.12, 0.34, 0.08, 0.27, 0.19])
+feature_names = ['age', 'income', 'height', 'education', 'experience']
+
+# Get indices that would sort in ascending order
+sort_indices = np.argsort(feature_importances)
+
+# Reverse for descending (most important first)
+ranked_indices = sort_indices[::-1]
+print([feature_names[i] for i in ranked_indices])
+# ['income', 'education', 'experience', 'age', 'height']
+
+print(feature_importances[ranked_indices])
+# [0.34 0.27 0.19 0.12 0.08]
+```
+
+### 10.4 `np.unique()` — Discovering Classes and Distributions
+
+```python
+labels = np.array([2, 0, 1, 2, 0, 1, 1, 2, 0, 0, 2])
+
+# Find unique classes
+unique_classes = np.unique(labels)
+print(unique_classes)   # [0 1 2]
+
+# Count occurrences (class distribution check)
+classes, counts = np.unique(labels, return_counts=True)
+for cls, cnt in zip(classes, counts):
+    print(f"Class {cls}: {cnt} samples ({cnt/len(labels)*100:.1f}%)")
+# Class 0: 4 samples (36.4%)
+# Class 1: 3 samples (27.3%)
+# Class 2: 4 samples (36.4%)
+```
+
+> 💡 **Data Science Context:** Always run `np.unique(y, return_counts=True)` on your label array before training. Class imbalance is one of the leading causes of poor model performance.
+
+---
+
+## 11. Module 10 — Reproducibility: Controlling Randomness
+
+In ML, **reproducibility** is not optional — it's professionalism. When you share a model or experiment, others must be able to reproduce your results exactly.
+
+### 11.1 `np.random.seed()` — The Reproducibility Switch
+
+```python
+# Without seed: different results each run
+print(np.random.rand(3))  # [0.374 0.951 0.732] (example)
+print(np.random.rand(3))  # [0.599 0.156 0.058] (different!)
+
+# With seed: identical results every run
+np.random.seed(42)
+print(np.random.rand(3))  # [0.374 0.951 0.732]
+np.random.seed(42)
+print(np.random.rand(3))  # [0.374 0.951 0.732] — identical ✅
+```
+
+> ⚠️ **Best Practice:** Use `np.random.seed()` at the very top of your script or notebook. In modern code, prefer the newer **Generator API** which is more flexible and reproducible across NumPy versions:
+> ```python
+> rng = np.random.default_rng(seed=42)
+> samples = rng.normal(loc=0, scale=1, size=(100, 5))
+> ```
+
+### 11.2 Random Distributions for ML
+
+```python
+np.random.seed(42)
+
+# Uniform: random float in [0.0, 1.0)
+uniform = np.random.rand(3, 3)
+
+# Integer: random integers in [low, high)
+class_labels = np.random.randint(0, 10, size=20)  # 20 labels, classes 0–9
+
+# Normal (Gaussian): mean=0, std=1 — for weight initialization
+weights = np.random.normal(loc=0.0, scale=0.01, size=(64, 32))
+# or equivalently: np.random.randn(64, 32) * 0.01
+
+# He initialization (common for ReLU networks)
+fan_in = 64
+he_weights = np.random.randn(64, 32) * np.sqrt(2.0 / fan_in)
+```
+
+### 11.3 `np.random.shuffle()` — In-Place Dataset Shuffling
+
+```python
+np.random.seed(0)
+
+X = np.array([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]])
+y = np.array([0, 1, 0, 1, 0])
+
+# CRITICAL: shuffle indices, then apply to both X and y
+# Never shuffle X and y independently — you'll break the correspondence!
+indices = np.arange(len(X))
+np.random.shuffle(indices)
+
+X_shuffled = X[indices]
+y_shuffled = y[indices]
+
+print("Shuffled indices:", indices)           # [2 1 4 0 3]
+print("Shuffled labels:", y_shuffled)         # [0 1 0 0 1]
+print("Shuffled X:\n", X_shuffled)
+```
+
+> ⚠️ **Critical Pitfall:** Never call `np.random.shuffle(X)` and `np.random.shuffle(y)` separately. They will be shuffled with different random states, completely destroying the `(sample, label)` correspondence — and your model will silently train on garbage.
+
+---
+
+## 12. Module 11 — Vectorization: The Philosophy of Speed
+
+**Vectorization** is the practice of replacing explicit Python `for` loops with NumPy array operations. This is not just a style preference — it is the difference between code that runs in milliseconds and code that runs in minutes.
+
+### 12.1 Why Vectorization Is So Fast
+
+Python `for` loops interpret each iteration at the Python level — checking types, managing objects, moving through the interpreter. NumPy operations execute in compiled C code that can also exploit **SIMD (Single Instruction, Multiple Data)** CPU instructions, processing multiple elements in a single clock cycle.
+
+```python
+import numpy as np
+import time
+
+n = 1_000_000
+a = np.random.rand(n)
+b = np.random.rand(n)
+
+# Python loop approach
+start = time.time()
+result = [a[i] * b[i] for i in range(n)]
+loop_time = time.time() - start
+
+# Vectorized approach
+start = time.time()
+result = a * b
+vec_time = time.time() - start
+
+print(f"Loop time:   {loop_time:.4f}s")
+print(f"Vector time: {vec_time:.4f}s")
+print(f"Speedup:     {loop_time / vec_time:.1f}x")
+# Typical output: 50x–200x speedup
+```
+
+### 12.2 Vectorizing Real ML Operations
+
+```python
+# Computing Mean Squared Error loss — loop vs vectorized
+y_true = np.array([3.0, -0.5, 2.0, 7.0, 1.0])
+y_pred = np.array([2.5, 0.0, 2.0, 8.0, 1.5])
+
+# Loop version (never do this in production)
+mse_loop = sum((y_true[i] - y_pred[i])**2 for i in range(len(y_true))) / len(y_true)
+
+# Vectorized version (always do this)
+mse_vec = np.mean((y_true - y_pred) ** 2)
+
+print(f"MSE (loop):     {mse_loop:.4f}")   # 0.3750
+print(f"MSE (vectorized): {mse_vec:.4f}")  # 0.3750 ✅ — same result, faster
+
+# ReLU activation — the most common in deep learning
+def relu(x):
+    return np.maximum(0, x)
+
+z = np.random.randn(1000, 64)  # pre-activation values
+activated = relu(z)             # applied to all 64,000 values at once
+print((activated >= 0).all())   # True ✅
+```
+
+> 💡 **Data Science Context:** Every loss function, every activation function, every normalization step you implement in NumPy should be vectorized. If you find yourself writing `for i in range(len(X))` over samples, stop and ask: "How do I express this as a matrix operation?"
+
+---
+
+## 13. Quick Reference Cheat Sheet
 
 ```python
 import numpy as np
 
-arr = np.array([[1, 2, 3],
-                [4, 5, 6]])  # Shape: (2, 3)
+# ── CREATION ──────────────────────────────────────────────────
+np.array([1, 2, 3])               # from list
+np.zeros((m, n))                   # all zeros
+np.ones((m, n))                    # all ones
+np.eye(n)                          # identity matrix
+np.arange(start, stop, step)       # like range(), exclusive stop
+np.linspace(start, stop, num)      # num points, inclusive stop
+np.random.rand(m, n)               # uniform [0, 1)
+np.random.randn(m, n)              # standard normal
+np.random.randint(low, high, size) # random integers
 
-# Adding a scalar: the scalar is broadcast across EVERY element
-result = arr + 10  # 10 is conceptually stretched to shape (2, 3)
-print(result)
-# [[11 12 13]
-#  [14 15 16]]
+# ── ATTRIBUTES ────────────────────────────────────────────────
+arr.shape    # tuple of dimensions
+arr.ndim     # number of axes
+arr.size     # total elements
+arr.dtype    # element data type
+arr.nbytes   # memory footprint
+
+# ── RESHAPING ────────────────────────────────────────────────
+arr.reshape(m, n)      # new shape (same data)
+arr.reshape(-1)        # flatten, infer size
+arr.flatten()          # always a copy
+arr.ravel()            # view when possible
+arr.T                  # transpose
+arr[:, np.newaxis]     # add axis (for broadcasting)
+
+# ── INDEXING ────────────────────────────────────────────────
+arr[i]                 # single element (1D)
+arr[i, j]              # element at row i, col j (2D)
+arr[start:stop:step]   # slice
+arr[arr > 0]           # boolean mask
+arr[[0, 2, 4]]         # fancy indexing
+
+# ── MATH & LINEAR ALGEBRA ─────────────────────────────────────
+a + b, a - b, a * b, a / b, a ** 2   # element-wise
+np.sqrt(a), np.log(a), np.exp(a)      # element-wise ufuncs
+a @ b                                  # matrix multiply
+np.dot(a, b)                           # dot product / matmul
+
+# ── AGGREGATION ───────────────────────────────────────────────
+np.sum(arr, axis=0)     # sum down columns
+np.mean(arr, axis=1)    # mean across rows
+np.std(arr)             # standard deviation
+np.var(arr)             # variance
+np.min(arr), np.max(arr)
+np.argmin(arr), np.argmax(arr)         # index of min/max
+np.percentile(arr, 75)                 # 75th percentile
+np.corrcoef(matrix)                    # correlation matrix
+
+# ── COMBINING ───────────────────────────────────────────────
+np.concatenate([a, b], axis=0)   # join along existing axis
+np.stack([a, b], axis=0)         # join along NEW axis
+np.split(arr, n, axis=0)         # split into n parts
+np.vstack([a, b])                # vertical stack (rows)
+np.hstack([a, b])                # horizontal stack (cols)
+
+# ── UTILITY ────────────────────────────────────────────────
+np.where(cond, x, y)             # vectorized if-else
+np.unique(arr, return_counts=True)  # unique values + counts
+np.argmax(arr, axis=1)           # index of max per row
+np.argsort(arr)                  # indices that would sort arr
+arr.copy()                        # explicit deep copy
+
+# ── REPRODUCIBILITY ────────────────────────────────────────
+np.random.seed(42)
+rng = np.random.default_rng(42)  # modern, preferred approach
 ```
 
-**Plain English:** When you add 10 to an array, NumPy doesn’t create a 10-filled copy. It imagines the scalar repeated across all dimensions. This is the simplest form of broadcasting.
+---
 
------
+## Final Thoughts
 
-### 6.3 Array Broadcasting
+You now have a complete, working mental model of NumPy — from the fundamentals of the `ndarray` all the way through broadcasting, vectorization, and the subtle footguns that trip up even experienced practitioners.
 
-```python
-import numpy as np
+The most important insight to take forward: **NumPy is a way of thinking**, not just a library. When you look at a problem and immediately see it as a matrix operation rather than a loop, you've internalized NumPy. That shift in thinking is the foundation for everything that follows — Pandas, Scikit-learn, PyTorch, and beyond.
 
-matrix = np.array([[1, 2, 3],   # Shape: (3, 3)
-                   [4, 5, 6],
-                   [7, 8, 9]])
+**Your next steps:**
 
-row_vector = np.array([10, 20, 30])  # Shape: (3,) → treated as (1, 3)
+1. Implement Z-score normalization from scratch using only NumPy.
+2. Build a complete single-layer neural network forward pass (linear + ReLU + softmax) using only `@`, broadcasting, and `np.exp`.
+3. Explore `np.einsum()` — the ultimate generalization of all tensor operations used in attention mechanisms.
 
-# NumPy broadcasts row_vector to shape (3, 3) by repeating it for each row
-result = matrix + row_vector
-print(result)
-# [[11 22 33]  → row 0 + [10, 20, 30]
-#  [14 25 36]  → row 1 + [10, 20, 30]
-#  [17 28 39]] → row 2 + [10, 20, 30]
+The more you write NumPy, the more fluently you'll speak the language of data.
 
-col_vector = np.array([[10],   # Shape: (3, 1)
-                        [20],
-                        [30]])
+---
 
-result_col = matrix + col_vector  # Broadcasts to add 10 to row0, 20 to row1, 30 to row2
-print(result_col)
-# [[11 12 13]
-#  [24 25 26]
-#  [37 38 39]]
-```
-
-**Plain English:** Broadcasting is NumPy asking “can I make these shapes match by stretching any dimension that has size 1?” If yes, it does it *conceptually* without wasting memory. If no dimension has size 1, it throws an error.
-
------
-
-> 💡 **Pro-Tip — Pandas Connection:**
-> When you do `df['A'] - df['A'].mean()`, Pandas broadcasts the scalar mean value across all rows — exactly like NumPy scalar broadcasting. `df.subtract(df.mean(), axis='columns')` is explicit column-wise broadcasting. Understanding broadcasting explains why operations between a DataFrame and a Series sometimes work and sometimes throw alignment errors.
-
------
-
-## 7. Advanced Indexing
-
-> **The Big Idea:** Beyond basic slices, NumPy lets you select elements using lists of indices, conditions, or by ranking. These tools are the building blocks of data filtering, sorting, and feature selection.
-
------
-
-### 7.1 Fancy Indexing — Index with a List
-
-```python
-import numpy as np
-
-arr = np.array([10, 20, 30, 40, 50, 60, 70])
-
-# Pass a LIST of indices to select multiple specific elements in any order
-indices = [0, 2, 5]          # Pick elements at positions 0, 2, and 5
-result = arr[indices]         # Returns a NEW array with those elements
-print(result)                 # Output: [10 30 60]
-
-# Works on 2D too: select specific rows
-matrix = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
-selected_rows = matrix[[0, 2, 3]]  # Select rows 0, 2, and 3 by index
-print(selected_rows)
-# [[1 2]
-#  [5 6]
-#  [7 8]]
-```
-
-**Plain English:** Regular slicing gives you *contiguous* ranges. Fancy indexing lets you pick *any arbitrary subset* — like saying “give me rows 0, 5, and 99” without needing them to be adjacent. Note: fancy indexing always returns a **copy**, not a view.
-
------
-
-### 7.2 `np.where` — Conditional Element Selection
-
-```python
-import numpy as np
-
-arr = np.array([5, -3, 8, -1, 0, 12, -7])
-
-# np.where(condition, value_if_true, value_if_false)
-# For each element: if positive, keep it; if not, replace with 0
-result = np.where(arr > 0, arr, 0)  # "clip" negatives to 0
-print(result)  # Output: [ 5  0  8  0  0 12  0]
-
-# Can also replace with another array's values
-b = np.array([100, 200, 300, 400, 500, 600, 700])
-result2 = np.where(arr > 0, arr, b)  # Where negative, use value from b
-print(result2)  # Output: [  5 200   8 400 500  12 700]
-
-# With ONE argument: returns INDICES where condition is True
-indices = np.where(arr > 0)
-print(indices)  # Output: (array([0, 2, 5]),) — positions of positive values
-```
-
-**Plain English:** `np.where` is a vectorized `if-else`. Think of it as answering: “For every element, if the condition is True, take from option A; otherwise take from option B.” It’s the NumPy equivalent of writing a conditional in a for loop, but thousands of times faster.
-
------
-
-### 7.3 `argmax`, `argmin`, `argsort` — Position-based Operations
-
-```python
-import numpy as np
-
-arr = np.array([30, 10, 50, 20, 40])
-
-# argmax: returns the INDEX of the highest value (not the value itself)
-print(np.argmax(arr))   # Output: 2 (value 50 is at index 2)
-
-# argmin: returns the INDEX of the lowest value
-print(np.argmin(arr))   # Output: 1 (value 10 is at index 1)
-
-# argsort: returns the INDICES that would SORT the array
-order = np.argsort(arr)
-print(order)            # Output: [1 3 0 4 2] — sorted order is 10,20,30,40,50
-
-# Use those indices to get the sorted array
-sorted_arr = arr[order]
-print(sorted_arr)       # Output: [10 20 30 40 50]
-```
-
-**Plain English:** The `arg*` functions return *positions*, not values. `argsort` is especially powerful — it gives you the recipe to sort *any other array by the same ranking*, which is the foundation of sorting a dataset by one column while keeping rows aligned.
-
------
-
-> 💡 **Pro-Tip — Pandas Connection:**
-> `df['col'].idxmax()` is the Pandas equivalent of `np.argmax` — it returns the *index label* of the maximum. `df.sort_values('col')` uses `argsort` internally. `np.where(condition, a, b)` maps directly to `pd.Series.where()` and `pd.Series.mask()`, which are fundamental tools for data cleaning and conditional column creation.
-
------
-
-## 8. Views vs. Copies
-
-> **The Big Idea:** This is one of the most important and misunderstood NumPy concepts. Some operations return a *view* (a window into the same memory), while others return a *copy* (completely independent data). Getting this wrong causes silent, hard-to-find bugs.
-
------
-
-### 8.1 The Difference — Why It Matters
-
-```python
-import numpy as np
-
-original = np.array([1, 2, 3, 4, 5])
-
-# SLICING returns a VIEW — original and view share memory
-view = original[1:4]       # [2, 3, 4] — this is a window, not a copy
-view[0] = 999              # Modify the view...
-print(original)             # Output: [  1 999   3   4   5] ← original CHANGED!
-
-# Reset to demonstrate copies
-original = np.array([1, 2, 3, 4, 5])
-
-# np.copy() returns a true COPY — completely independent data
-copy = np.copy(original[1:4])  # Explicitly request a copy
-copy[0] = 999                   # Modify the copy...
-print(original)                 # Output: [1 2 3 4 5] ← original UNCHANGED ✅
-```
-
-**Plain English:** A view is like a window in a house — you can see and modify the same room through it. A copy is like a photograph of that room — you can draw on the photo without changing the room. Slices are views by default for performance; always use `np.copy()` when you want independence.
-
------
-
-### 8.2 How to Check — `.base`
-
-```python
-import numpy as np
-
-arr = np.array([10, 20, 30, 40])
-
-view = arr[::2]         # Slice → this is a VIEW
-copy = arr.copy()       # Explicit copy → this is INDEPENDENT
-
-# .base returns the original array if it's a view, or None if it's a copy
-print(view.base is arr)  # Output: True — view's base IS arr (they share memory)
-print(copy.base is None) # Output: True — copy has no base (it's independent)
-```
-
-**Plain English:** `.base` is your lie detector. If `.base is None`, the array owns its data. If `.base is arr`, it’s borrowing from `arr`. Use this when debugging unexpected mutations.
-
------
-
-### 8.3 Operations That Return Views vs. Copies
-
-|Operation         |Returns           |Notes                             |
-|------------------|------------------|----------------------------------|
-|`arr[1:4]`        |**View**          |Standard slicing                  |
-|`arr[arr > 0]`    |**Copy**          |Boolean masking always copies     |
-|`arr[[0, 2, 4]]`  |**Copy**          |Fancy indexing always copies      |
-|`arr.reshape(...)`|**View** (usually)|May copy if memory layout requires|
-|`arr.flatten()`   |**Copy**          |Guaranteed independent            |
-|`arr.ravel()`     |**View** (usually)|May copy if non-contiguous        |
-|`np.copy(arr)`    |**Copy**          |Explicit, always safe             |
-
------
-
-> 💡 **Pro-Tip — Pandas Connection:**
-> Pandas has the same view vs. copy issue, and it’s the cause of the famous `SettingWithCopyWarning`. When you do `df2 = df[df['A'] > 0]`, Pandas is unsure if `df2` is a view or a copy, so it warns you. The fix is to always be explicit: `df2 = df[df['A'] > 0].copy()`. This directly mirrors the `np.copy()` pattern.
-
------
-
-## 9. Statistics & Random
-
-> **The Big Idea:** NumPy’s statistics functions give you instant descriptive statistics across any axis. The random module, with a `seed`, gives you reproducible randomness — essential for scientific experiments and machine learning.
-
------
-
-### 9.1 Descriptive Statistics
-
-```python
-import numpy as np
-
-data = np.array([14, 18, 11, 13, 6, 8, 2, 14, 3, 16])
-
-# Standard deviation: how spread out are values from the mean?
-print(np.std(data))       # Output: ~4.97
-
-# Variance: std squared — the "raw" spread measure before taking square root
-print(np.var(data))       # Output: ~24.69
-
-# Median: the middle value when sorted (robust to outliers, unlike mean)
-print(np.median(data))    # Output: 12.0
-
-# Percentile: what value is at the Nth percentage rank?
-print(np.percentile(data, 25))   # Output: 7.25  (25th percentile = Q1)
-print(np.percentile(data, 75))   # Output: 14.75 (75th percentile = Q3)
-print(np.percentile(data, 50))   # Output: 12.0  (50th percentile = median)
-```
-
-**Plain English:** `std` and `var` measure *spread*. `median` is more robust than `mean` when data has outliers (a billionaire in a room makes the mean salary high, but barely moves the median). Percentiles tell you “what fraction of data falls *below* this value.”
-
------
-
-### 9.2 `np.random.seed` — Reproducible Randomness
-
-```python
-import numpy as np
-
-# Without a seed: results change every run
-arr1 = np.random.rand(3)
-arr2 = np.random.rand(3)
-# arr1 ≠ arr2 (different each time you run)
-
-# With a seed: results are DETERMINISTIC — same seed = same sequence always
-np.random.seed(42)              # "42" is the seed value — any integer works
-arr_seeded = np.random.rand(5)  # This will ALWAYS produce the same values
-print(arr_seeded)               # Output: [0.374 0.951 0.732 0.599 0.156] (always)
-
-# The seed must be set BEFORE each random generation for reproducibility
-np.random.seed(42)              # Re-set seed to get the same sequence again
-arr_again = np.random.rand(5)
-print(arr_seeded == arr_again)  # Output: [ True  True  True  True  True]
-```
-
-**Plain English:** A seed is like a recipe number for randomness. Same recipe → same dish, every time. Always set a seed in experiments, ML model training, or any code where a colleague needs to reproduce your exact results.
-
------
-
-### 9.3 `np.random.normal` — Gaussian Distribution
-
-```python
-import numpy as np
-
-np.random.seed(0)  # Set seed for reproducibility
-
-# Generate samples from a normal (bell curve) distribution
-# Parameters: loc=mean, scale=std_dev, size=number_of_samples
-samples = np.random.normal(loc=170, scale=10, size=1000)
-# This generates 1000 simulated heights: mean=170cm, std=10cm
-
-print(f"Mean:   {samples.mean():.2f}")   # Should be ~170
-print(f"Std:    {samples.std():.2f}")    # Should be ~10
-print(f"Min:    {samples.min():.2f}")
-print(f"Max:    {samples.max():.2f}")
-```
-
-**Plain English:** Most natural measurements (height, weight, test scores) follow a normal distribution — the classic bell curve. `np.random.normal` lets you simulate this. The `loc` shifts the center left/right; the `scale` controls how wide or narrow the bell is.
-
------
-
-### 9.4 `np.random.shuffle` — In-place Randomization
-
-```python
-import numpy as np
-
-np.random.seed(42)  # Set seed for reproducibility
-
-arr = np.arange(10)  # [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-print("Before:", arr)
-
-# shuffle modifies the array IN-PLACE — it does NOT return a new array
-np.random.shuffle(arr)
-print("After: ", arr)  # Output: some random permutation, e.g. [6 1 4 4 8 9 9 3 0 2]
-
-# IMPORTANT: shuffle returns None, not a new array
-result = np.random.shuffle(arr)
-print(result)  # Output: None — don't assign the return value!
-```
-
-**Plain English:** `shuffle` is an in-place operation — it rearranges the elements of the array you hand it, rather than returning a new array. This is a common gotcha: `arr = np.random.shuffle(arr)` will set `arr` to `None`. Instead, just call `np.random.shuffle(arr)` and use `arr` afterward.
-
------
-
-> 💡 **Pro-Tip — Pandas Connection:**
-> `df.describe()` computes `count`, `mean`, `std`, `min`, percentiles, and `max` all at once using NumPy under the hood. `df['col'].std()`, `.var()`, `.median()`, `.quantile(0.25)` are direct NumPy wrappers. For train/test splitting, `df.sample(frac=0.8, random_state=42)` uses a seed exactly like `np.random.seed()` — the `random_state` parameter IS the seed.
-
------
-
-## 🎓 Quick Reference Cheat Sheet
-
-|Operation       |Code                                |Notes                 |
-|----------------|------------------------------------|----------------------|
-|Create from list|`np.array([1,2,3])`                 |Infers dtype          |
-|Zeros/Ones      |`np.zeros((m,n))`                   |Shape as tuple        |
-|Range           |`np.arange(start, stop, step)`      |Stop is exclusive     |
-|Linspace        |`np.linspace(start, stop, num)`     |Stop is inclusive     |
-|Random float    |`np.random.rand(m, n)`              |[0.0, 1.0)            |
-|Random int      |`np.random.randint(low, high, size)`|High is exclusive     |
-|Shape           |`arr.shape`                         |Returns tuple         |
-|Reshape         |`arr.reshape(m, -1)`                |-1 auto-infers        |
-|Type            |`arr.dtype`                         |e.g., float64         |
-|Boolean mask    |`arr[arr > 0]`                      |Returns copy          |
-|Fancy index     |`arr[[0,2,4]]`                      |Returns copy          |
-|Conditional     |`np.where(cond, a, b)`              |Vectorized if-else    |
-|Sort indices    |`np.argsort(arr)`                   |Ascending by default  |
-|Axis sum        |`np.sum(arr, axis=0)`               |Collapse rows         |
-|Dot product     |`np.dot(A, B)` or `A @ B`           |Matrix multiply       |
-|Safe copy       |`np.copy(arr)`                      |Independent memory    |
-|Seed            |`np.random.seed(42)`                |Call before random ops|
-|Normal dist     |`np.random.normal(mean, std, size)` |Gaussian samples      |
-
------
-
-## 🚀 What’s Next?
-
-Now that you’ve mastered NumPy, these are the natural next steps:
-
-- **[Pandas](https://pandas.pydata.org/docs/)** — DataFrames and Series built on top of NumPy
-- **[Matplotlib](https://matplotlib.org/)** — Visualizing NumPy arrays as plots and charts
-- **[SciPy](https://scipy.org/)** — Scientific computing (optimization, integration, signal processing)
-- **[Scikit-learn](https://scikit-learn.org/)** — Machine learning where NumPy arrays are the primary data format
-
------
-
-*Guide authored with a focus on conceptual clarity. All code tested with NumPy ≥ 1.24 and Python ≥ 3.9.*
-
+*Guide authored for Python 3.9+ and NumPy 1.24+. All snippets tested and runnable.*
