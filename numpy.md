@@ -860,7 +860,7 @@ for cls, cnt in zip(classes, counts):
 In ML, **reproducibility** is not optional — it's professionalism. When you share a model or experiment, others must be able to reproduce your results exactly.
 
 ### 11.1 `np.random.seed()` — The Reproducibility Switch
-
+If you use the same seed value (e.g., random.seed(42)), Python will generate the exact same sequence of "random" numbers every time the code is executed.
 ```python
 # Without seed: different results each run
 print(np.random.rand(3))  # [0.374 0.951 0.732] (example)
