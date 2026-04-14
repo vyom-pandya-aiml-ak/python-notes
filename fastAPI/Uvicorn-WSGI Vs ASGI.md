@@ -112,6 +112,7 @@ async def make_frosting(request):
 ```
 
 In this async version, while `bake_in_oven()` is waiting, the server can jump over and run `make_frosting()` instead of idling. That’s the power of ASGI—non-blocking, efficient multitasking.
+<img width="566" height="791" alt="image" src="https://github.com/user-attachments/assets/070967f3-fc81-46ef-962d-dbf6a814ae02" />
 
 ### Boxing It All Up
 
