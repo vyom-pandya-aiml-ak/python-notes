@@ -446,6 +446,9 @@ def list_users(
 |`/orders/99`                 |`/orders?status=pending`    |
 |Required, always present     |Often optional with defaults|
 
+<img width="720" height="244" alt="image" src="https://github.com/user-attachments/assets/6cf08176-1d1b-42a6-9144-b272de0c14db" />
+
+
 #### 📌 Key Takeaway
 
 Path parameters say **“which one”**. Query parameters say **“filter/sort/configure how”**.
