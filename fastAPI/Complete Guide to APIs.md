@@ -151,52 +151,6 @@ REST (Representational State Transfer) was defined by Roy Fielding in his 2000 d
 
 Imagine calling a customer support line where each agent has amnesia. Every time you call, you must re-explain your name, your account number, and the full context of your issue from scratch. Frustrating for humans, but liberating for distributed systems — it means any agent (server) can handle any call (request) because they don’t rely on remembered context.
 
-```python
-# ============================================================
-# STATELESSNESS IN PRACTICE: JWT Authentication
-# Every request carries its own identity proof.
-# ============================================================
-
-import requests  # HTTP client library
-import jwt        # PyJWT library for creating/verifying tokens
-import datetime
-
-# --- SERVER SIDE: Token generation after login ---
-
-SECRET_KEY = "super-secret-signing-key"  # In prod, load from env vars
-
-def create_jwt_token(user_id: int) -> str:
-    """
-    Creates a signed JWT. The server doesn't store this token anywhere.
-    The token IS the session. It's self-contained and verifiable.
-    """
-    payload = {
-        "sub": user_id,           # Subject: who this token is for
-        "iat": datetime.datetime.utcnow(),  # Issued At: timestamp of creation
-        "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=1),  # Expiry: 1hr window
-    }
-    # jwt.encode serializes the dict to JSON and signs it with HMAC-SHA256
-    # The result is a base64url-encoded string: header.payload.signature
-    return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
-
-# --- CLIENT SIDE: Re-sending the token on every request ---
-
-token = create_jwt_token(user_id=42)  # Obtained at login time
-
-response = requests.get(
-    "https://api.example.com/profile",  # Any server in the cluster can handle this
-    headers={
-        # The Authorization header carries the full session context
-        # No server-side lookup needed — the server validates the signature
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/json",      # Content negotiation
-    }
-)
-
-# The server verified the token signature, extracted user_id=42,
-# and returned the profile — without ever consulting a session store.
-print(response.json())
-```
 
 ### 4.3 Cacheability
 
@@ -207,60 +161,6 @@ print(response.json())
 **The mechanism:** HTTP cache control is orchestrated entirely through response headers. The most important ones are `Cache-Control` (primary directive: `max-age`, `no-cache`, `no-store`, `public`, `private`), `ETag` (a fingerprint of the resource content, used for conditional GET revalidation), and `Last-Modified` (timestamp used for `If-Modified-Since` conditional requests).
 
 **System design implication:** This is one of REST’s biggest advantages over GraphQL. Because REST uses distinct URLs for distinct resources and `GET` requests are semantically read-only, CDNs and reverse proxies can transparently cache them. GraphQL, which tunnels all operations over `POST /graphql`, cannot use standard HTTP caching without custom middleware.
-
-```python
-# ============================================================
-# CACHEABILITY: Setting Cache-Control headers in FastAPI
-# The server instructs intermediaries on how to cache responses.
-# ============================================================
-
-from fastapi import FastAPI
-from fastapi.responses import JSONResponse
-
-app = FastAPI()
-
-@app.get("/products/{product_id}")
-async def get_product(product_id: int):
-    """
-    Product data changes rarely. Cache it aggressively.
-    A CDN will serve this from its edge cache for 5 minutes
-    before checking the origin for a newer version.
-    """
-    product = {"id": product_id, "name": "Widget Pro", "price": 49.99}
-    
-    return JSONResponse(
-        content=product,
-        headers={
-            # 'public': any cache (CDN, browser) may store this response
-            # 'max-age=300': serve from cache for up to 300 seconds (5 min)
-            # 'stale-while-revalidate=60': serve stale for 60s while fetching fresh
-            "Cache-Control": "public, max-age=300, stale-while-revalidate=60",
-            # ETag is a hash/fingerprint of the content.
-            # The client can send this back as If-None-Match to check for updates.
-            # If the ETag matches, the server returns 304 Not Modified (no body),
-            # saving bandwidth on the response payload entirely.
-            "ETag": f'"{hash(str(product))}"',
-        }
-    )
-
-@app.get("/user/cart")
-async def get_cart():
-    """
-    User-specific data. Must NEVER be stored in a shared CDN cache,
-    or User A could see User B's cart. 'private' restricts to browser only.
-    'no-cache' means the browser MUST revalidate with the server on each use.
-    """
-    cart = {"items": [{"product_id": 1, "quantity": 2}]}
-    
-    return JSONResponse(
-        content=cart,
-        headers={
-            # 'private': only the end-user's browser may cache this
-            # 'no-cache': browser must revalidate before serving from cache
-            "Cache-Control": "private, no-cache",
-        }
-    )
-```
 
 ### 4.4 Uniform Interface
 
@@ -323,80 +223,6 @@ HTTP status codes are the server’s primary mechanism for communicating the out
 **5xx — Server Error.** The server received a valid request but failed to process it. `500 Internal Server Error` is a catch-all for unhandled exceptions. `502 Bad Gateway` means an upstream service returned an invalid response. `503 Service Unavailable` means the server is overloaded or down for maintenance. `504 Gateway Timeout` means an upstream request timed out.
 
 The architectural importance of distinguishing 4xx from 5xx cannot be overstated. A `4xx` error means “retry is pointless without changing the request.” A `5xx` error means “retry with exponential backoff may succeed.” Clients that implement this distinction are dramatically more resilient in production.
-
-```python
-# ============================================================
-# STATUS CODES: Correct usage in a FastAPI endpoint
-# Each code carries semantic meaning that clients act upon.
-# ============================================================
-
-from fastapi import FastAPI, HTTPException, status
-from pydantic import BaseModel
-from typing import Optional
-
-app = FastAPI()
-
-# In-memory store for demonstration
-users_db = {1: {"id": 1, "name": "Ada Lovelace", "email": "ada@example.com"}}
-
-class UserCreate(BaseModel):
-    name: str
-    email: str
-
-class UserUpdate(BaseModel):
-    name: Optional[str] = None
-    email: Optional[str] = None
-
-
-@app.get("/users/{user_id}")
-async def get_user(user_id: int):
-    """GET is safe and idempotent. We look up the resource by its identifier."""
-    if user_id not in users_db:
-        # 404: The resource does not exist at this URI.
-        # The client should NOT retry without changing the resource ID.
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with id={user_id} not found."
-        )
-    # 200: Standard success. The body contains the resource representation.
-    return users_db[user_id]
-
-
-@app.post("/users", status_code=status.HTTP_201_CREATED)
-async def create_user(user: UserCreate):
-    """
-    POST is not idempotent. Each call creates a new resource.
-    We return 201 Created (not 200) and include the Location of the new resource.
-    """
-    # Simulate a uniqueness constraint violation
-    for existing in users_db.values():
-        if existing["email"] == user.email:
-            # 409 Conflict: the request would violate a uniqueness constraint.
-            # The client must change the request data before retrying.
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"A user with email '{user.email}' already exists."
-            )
-    
-    new_id = max(users_db.keys()) + 1 if users_db else 1
-    new_user = {"id": new_id, **user.dict()}
-    users_db[new_id] = new_user
-    
-    # 201 Created: The resource was created successfully.
-    # FastAPI will also include the Location header via response_headers if configured.
-    return new_user
-
-
-@app.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(user_id: int):
-    """
-    DELETE is idempotent. Whether the user existed or not,
-    the desired end state (user is gone) is achieved.
-    204 No Content: success, but no response body is needed.
-    """
-    users_db.pop(user_id, None)  # pop with default=None is idempotent: no error if missing
-    # Returning None with 204 means no body is serialized, saving bandwidth
-```
 
 -----
 
