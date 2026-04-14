@@ -110,6 +110,49 @@ async def make_frosting(request):
     return response
 
 ```
+# What is Uvicorn?
+Uvicorn is the recommended lightweight ASGI server for FastAPI, optimized for asynchronous programming. Known for its exceptional performance in handling asynchronous code, it's favored by FastAPI users for its user-friendly design suitable for both development and production environments. Uvicorn also offers a convenient --reload option, automatically restarting the server upon detecting code changes, proving particularly valuable in the development phase.
+
+### Example:
+import uvicorn
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get(&quot;/&quot;)
+async def index():
+   return {&quot;message&quot;: &quot;Hello World&quot;}
+
+run the below command in terminal
+
+## uvicorn main:app --reload
+
+Output:
+
+Message: Hello World!!!!
+
+# What is Gunicorn ?
+Gunicorn, a WSGI server, can be used alongside Uvicorn to serve FastAPI applications, despite not being specifically designed for ASGI. Commonly paired with frameworks like Flask and Django, Gunicorn boasts a mature ecosystem and is favored for production deployments. However, its synchronous nature, processing one request at a time per worker process, necessitates combining it with Uvicorn for optimal utilization of asynchronous programming in FastAPI.
+
+### Example:
+import uvicorn
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get(&quot;/&quot;)
+async def index():
+   return {&quot;message&quot;: &quot;Hello World&quot;}
+
+run the below command
+
+## gunicorn main:app --reload --log-level info --workers 3 --bind 0.0.0.0:8000
+
+Output:
+
+Note: Gunicorn works in docker or linux os systems, in windows it might not work.
+
+Message: Hello World!!!!
 
 In this async version, while `bake_in_oven()` is waiting, the server can jump over and run `make_frosting()` instead of idling. That’s the power of ASGI—non-blocking, efficient multitasking.
 
