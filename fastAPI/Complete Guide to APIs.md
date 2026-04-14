@@ -1,5 +1,13 @@
 # The Principal Engineer’s Complete Guide to APIs
 
+https://apidog.com/blog/know-about-apis/?gad_source=1&gad_campaignid=23405649492&gbraid=0AAAAA-gKXrAd9JTjyYGvUkVXKGTepVGci&gclid=Cj0KCQjwqPLOBhCiARIsAKRMPZqrnHkf_fpkZuoWehibnJ4P9-olx7TfKYu34G-JjRykbWiH0jnu1F4aApjOEALw_wcB
+
+https://blog.dreamfactory.com/rest-apis-an-overview-of-basic-principles
+
+https://www.opslevel.com/resources/api-protocols-picking-the-right-protocol-for-your-use-case
+
+
+
 ### From Foundational Concepts to Protocol-Level Architecture
 
 > *A synthesis of foundational API theory, REST architectural constraints, and modern protocol trade-offs — written for engineers who want to understand the **why** behind every design decision.*
