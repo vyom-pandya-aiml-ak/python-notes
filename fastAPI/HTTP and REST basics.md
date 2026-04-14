@@ -2,6 +2,8 @@
 
 > **Goal:** Build real intuition for how APIs work — not just how to use FastAPI, but *why* everything works the way it does.
 
+https://www.atlassian.com/microservices/microservices-architecture/microservices-vs-monolith 
+
 -----
 
 ## 📋 Table of Contents
