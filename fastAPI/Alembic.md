@@ -1000,6 +1000,12 @@ op.create_check_constraint("ck_name", "table", "amount > 0")
 op.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
 op.execute(sa.text("UPDATE users SET status = 'active' WHERE status IS NULL"))
 ```
+## sqlacodegen
+sqlacodegen is a command-line tool that performs "reverse engineering" on your database. While Alembic usually goes from Code → Database, sqlacodegen goes from Database → Code. [1] 
+## Commands:
+
+pip install sqlacodegen psycopg2
+sqlacodegen postgresql+psycopg2://user:password@localhost:5432/dbname > models.py
 
 ### Pre-Merge Checklist
 
