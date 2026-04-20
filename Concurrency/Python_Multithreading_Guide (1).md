@@ -1038,180 +1038,30 @@ def task_with_timeout():
 
 ---
 
-### Memory Leaks
+## 1. Memory Leaks
+Memory leaks happen when Python can't clear finished tasks from RAM.
 
-Threading introduces two subtle but serious memory leak patterns.
+* Circular References:
+* The Problem: An object points to a function (like a lambda) that points back to the object. They get "stuck" in a loop and Python can't delete them automatically.
+   * The Fix: Manually break the loop by setting the reference to None when finished.
+* Thread Accumulation:
+* The Problem: Starting new threads in a loop without "joining" them. Python keeps every thread object alive until it's explicitly closed.
+   * The Fix: Use ThreadPoolExecutor. It uses a fixed number of threads and reuses them for new tasks.
 
-#### Circular References
+## 2. Race Conditions
 
-```python
-import threading   # For Thread
-import tracemalloc # For memory profiling (see Part 6)
-import gc          # Python's garbage collector module
+* The Problem: Multiple threads try to update the same data (like a bank balance) at once. If they both read the balance before either finishes the update, one calculation will overwrite the other, causing "lost" data.
+* The Fix: Locks.
+* Use threading.Lock().
+   * By putting code inside a with lock: block, you ensure only one thread can run that specific logic at a time. This makes the "check balance" and "withdraw" steps happen as one single, safe action.
 
-# 🛑 MEMORY LEAK: Circular Reference
-class TaskHandler:
-    """A handler that accidentally creates a circular reference."""
+## Summary Table
 
-    def __init__(self, name):
-        self.name = name
-        self.callback = None   # Will hold a reference back to self — a circular ref
-
-    def setup_callback(self):
-        # The lambda captures 'self' — so self.callback holds a reference to self
-        # AND self is referenced by self.callback: a circle!
-        self.callback = lambda: print(f"Callback from {self.name}")
-        # Memory layout: handler → callback (lambda) → handler  ← CIRCULAR!
-
-def leak_demonstration():
-    """Creates handlers that Python's reference counter can't free."""
-    handlers = []
-    for i in range(1000):
-        h = TaskHandler(f"task_{i}")
-        h.setup_callback()  # Creates the circular reference
-        handlers.append(h)
-
-    # When 'handlers' goes out of scope, the reference count never hits 0
-    # because each handler's callback still points back to the handler.
-    # Python's cyclic garbage collector WILL eventually collect these,
-    # but it's non-deterministic and can cause memory spikes.
-
-# ✅ SOLUTION: Explicitly break the cycle before discarding
-def safe_handler_cleanup():
-    handlers = []
-    for i in range(1000):
-        h = TaskHandler(f"task_{i}")
-        h.setup_callback()
-        handlers.append(h)
-
-    # Break the circular reference explicitly
-    for h in handlers:
-        h.callback = None  # Removes the reference from callback back to self
-
-    # Now reference counting can clean up normally — fast and deterministic
-    handlers.clear()   # Remove the list's references to the handlers
-    gc.collect()       # Force a full garbage collection to be sure
-
-safe_handler_cleanup()
-print("Memory cleaned up safely ✅")
-```
-
-#### Thread Accumulation
-
-```python
-import threading  # For Thread, active_count
-import time       # For sleep
-
-# 🛑 MEMORY LEAK: Starting threads in a loop without joining them
-def thread_accumulation_leak():
-    """Each call creates a new thread that's never cleaned up."""
-    for i in range(100):
-        # New thread created every second — old ones never joined
-        t = threading.Thread(target=lambda: time.sleep(60), name=f"Leaked-{i}")
-        t.start()
-        # t goes out of scope here, but the THREAD keeps running!
-        # Python holds a reference to all living threads internally.
-        time.sleep(0.01)
-
-    print(f"Active threads: {threading.active_count()}")  # Could be 100+!
-
-# ✅ SOLUTION: Use ThreadPoolExecutor — threads are reused, not accumulated
-from concurrent.futures import ThreadPoolExecutor
-
-def safe_repeated_work():
-    """Uses a fixed-size pool — thread count stays constant."""
-    def do_work(i):
-        time.sleep(0.01)  # Simulate quick work
-        return i
-
-    # max_workers=4 means EXACTLY 4 threads, no matter how many tasks
-    with ThreadPoolExecutor(max_workers=4) as pool:
-        results = list(pool.map(do_work, range(100)))
-
-    print(f"Active threads after pool: {threading.active_count()}")  # Back to normal!
-    return results
-
-safe_repeated_work()
-```
-
----
-
-### Race Conditions
-
-A **race condition** occurs when the behavior of a program depends on the timing of thread execution. Two threads "race" to access shared data, and the result depends on who wins — which is unpredictable.
-
-```
-Thread A: reads counter (value = 5)
-                                    Thread B: reads counter (value = 5)
-Thread A: adds 1 (local value = 6)
-                                    Thread B: adds 1 (local value = 6)
-Thread A: writes back 6
-                                    Thread B: writes back 6
-Final value: 6  ← Should be 7! One increment was LOST.
-```
-
-```python
-import threading   # For Thread and Lock
-import time        # For sleep
-
-# Visual demonstration of a race condition
-bank_balance = 1000  # Starting balance — should never go below 0
-
-def withdraw(amount, account_name):
-    """Attempts to withdraw money. 🛑 Not thread-safe."""
-    global bank_balance
-
-    # Step 1: Check if we have enough money
-    if bank_balance >= amount:
-        # ⚠️ DANGER ZONE: Another thread can run between the 'if' and the subtraction!
-        time.sleep(0.001)  # Tiny sleep simulates the gap between check and action
-
-        # Step 2: Withdraw the money
-        bank_balance -= amount
-        print(f"[{account_name}] Withdrew ${amount}. Balance: ${bank_balance}")
-    else:
-        print(f"[{account_name}] Insufficient funds! Balance: ${bank_balance}")
-
-# 🛑 Race condition: Two threads both check the balance, both see $1000, both withdraw
-print("=== Race Condition Demo ===")
-threads = []
-for name in ["ATM-1", "ATM-2", "Online-App", "Mobile-App"]:
-    t = threading.Thread(target=withdraw, args=(800, name))
-    threads.append(t)
-
-for t in threads: t.start()
-for t in threads: t.join()
-print(f"Final balance: ${bank_balance}")  # Could be NEGATIVE! 💀
-
-# ✅ Thread-safe version
-bank_balance = 1000  # Reset
-balance_lock = threading.Lock()  # Protect the balance
-
-def safe_withdraw(amount, account_name):
-    """Thread-safe withdrawal using a lock."""
-    global bank_balance
-
-    with balance_lock:  # Only ONE thread can be inside this block at a time
-        # Now the check and the withdrawal are an ATOMIC unit
-        if bank_balance >= amount:
-            time.sleep(0.001)  # Same delay as before, but now it's safe
-            bank_balance -= amount
-            print(f"[{account_name}] Withdrew ${amount}. Balance: ${bank_balance}")
-        else:
-            print(f"[{account_name}] Insufficient funds! Balance: ${bank_balance}")
-
-print("\n=== Thread-Safe Demo ===")
-threads = []
-for name in ["ATM-1", "ATM-2", "Online-App", "Mobile-App"]:
-    t = threading.Thread(target=safe_withdraw, args=(800, name))
-    threads.append(t)
-
-for t in threads: t.start()
-for t in threads: t.join()
-print(f"Final balance: ${bank_balance}")  # Always $200 (one withdrawal of $800 succeeded)
-```
-
----
+| Issue | Cause | Best Solution |
+|---|---|---|
+| Circular Ref | Objects pointing to each other | Manually clear references (None) |
+| Accumulation | Creating too many unjoined threads | Use ThreadPoolExecutor |
+| Race Condition | Simultaneous data access | Use threading.Lock() |
 
 ## Part 6 — Observability & Survival Gear
 
