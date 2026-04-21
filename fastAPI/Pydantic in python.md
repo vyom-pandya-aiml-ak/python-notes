@@ -193,67 +193,40 @@ print(emp.department)  # Output: General (default value used)
 > A nested model is like a Matryoshka doll. Each doll (model) is complete and validated on its own, but it can also live *inside* a larger doll. When you validate the outer doll, Pydantic automatically validates each inner doll as well — all the way down to the smallest one.
 
 ```python
-# nested_models.py
+from pydantic import BaseModel
 
-from pydantic import BaseModel, Field    # Core imports
-from typing import List, Optional        # List for collections, Optional for nullable
-from datetime import datetime            # Standard library datetime
-
-# --- Level 3: The innermost model ---
 class Address(BaseModel):
-    street: str                          # Street address line
-    city: str                            # City name
-    country: str                         # Country name
-    postal_code: str = Field(min_length=3, max_length=10)  # Validated postal code
 
-# --- Level 2: A mid-level model, contains primitives ---
-class ContactInfo(BaseModel):
-    email: str                           # Email address (string validation)
-    phone: Optional[str] = None          # Optional phone number
+    city: str
+    state: str
+    pin: str
 
-# --- Level 1: The outermost model, composes Address and ContactInfo ---
-class Customer(BaseModel):
-    customer_id: int                     # Unique integer identifier
-    name: str = Field(min_length=2)      # Name with minimum length constraint
-    contact: ContactInfo                 # Nested model — automatically validated
-    addresses: List[Address]             # A list of nested Address models
-    created_at: datetime = Field(        # Datetime with a dynamic default
-        default_factory=datetime.now     # Called fresh for every new instance
-    )
-    is_active: bool = True               # Simple boolean with a default
+class Patient(BaseModel):
 
-# --- Creating a nested structure from a plain dictionary ---
-customer_data = {
-    "customer_id": 101,
-    "name": "Bob Smith",
-    "contact": {                         # Pydantic parses this dict into a ContactInfo
-        "email": "bob@example.com",
-        "phone": "555-1234"
-    },
-    "addresses": [                       # Pydantic parses each dict into an Address
-        {
-            "street": "123 Main St",
-            "city": "Springfield",
-            "country": "USA",
-            "postal_code": "62701"
-        },
-        {
-            "street": "456 Oak Ave",
-            "city": "Shelbyville",
-            "country": "USA",
-            "postal_code": "62702"
-        }
-    ]
-}
+    name: str
+    gender: str
+    age: int
+    address: Address
 
-customer = Customer(**customer_data)     # Unpack dict as keyword arguments
+address_dict = {'city': 'gurgaon', 'state': 'haryana', 'pin': '122001'}
 
-# --- Accessing nested data with dot notation ---
-print(customer.name)                        # Output: Bob Smith
-print(customer.contact.email)               # Output: bob@example.com
-print(customer.addresses[0].city)           # Output: Springfield
-print(customer.addresses[1].postal_code)    # Output: 62702
-print(type(customer.contact))              # Output: <class 'ContactInfo'>
+address1 = Address(**address_dict)
+
+patient_dict = {'name': 'nitish', 'gender': 'male', 'age': 35, 'address': address1}
+
+patient1 = Patient(**patient_dict)
+
+temp = patient1.model_dump(include=)
+
+print(type(temp))
+
+# Better organization of related data (e.g., vitals, address, insurance)
+
+# Reusability: Use Vitals in multiple models (e.g., Patient, MedicalRecord)
+
+# Readability: Easier for developers and API consumers to understand
+
+# Validation: Nested models are validated automatically—no extra work needed
 ```
 
 ---
@@ -267,79 +240,59 @@ print(type(customer.contact))              # Output: <class 'ContactInfo'>
 > Imagine a quality inspector on a factory line. Each component (field) passes through a specific inspection station. The inspector for bolts checks bolt dimensions; the inspector for circuits checks voltage. Each station has its own specialized rules. `@field_validator` is exactly this — a dedicated inspection station for a single, specific field.
 
 ```python
-# field_validators.py
+from pydantic import BaseModel, EmailStr, AnyUrl, Field, field_validator
+from typing import List, Dict, Optional, Annotated
 
-from pydantic import BaseModel, Field, field_validator   # Import the decorator
-from typing import Optional
-import re                                                 # Standard library regex module
+class Patient(BaseModel):
 
-class UserRegistration(BaseModel):
-    username: str = Field(min_length=3, max_length=20)   # Basic length constraint
-    email: str                                            # Will be validated by custom logic
-    password: str = Field(min_length=8)                  # Minimum 8 characters
-    phone: Optional[str] = None                          # Optional phone number
+    name: str
+    email: EmailStr
+    age: int
+    weight: float
+    married: bool
+    allergies: List[str]
+    contact_details: Dict[str, str]
 
-    @field_validator("email")                            # Decorate to target the 'email' field
-    @classmethod                                         # REQUIRED: must be a classmethod in V2
-    def validate_email_format(cls, value: str) -> str:  # cls=the class, value=the field's value
-        """Validates that the email has a proper format."""
-        # Define a basic email regex pattern
-        pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-
-        if not re.match(pattern, value):                 # Check if value matches the pattern
-            raise ValueError(                            # Raise ValueError on failure
-                f"'{value}' is not a valid email address format."
-            )
-        return value.lower()                             # Normalize to lowercase before storing
-
-    @field_validator("username")                         # Target the 'username' field
+    @field_validator('email')
     @classmethod
-    def validate_username_no_spaces(cls, value: str) -> str:
-        """Ensures the username contains no whitespace characters."""
-        if " " in value:                                 # Check for space character
-            raise ValueError("Username must not contain spaces.")
-        return value.strip()                             # Strip any leading/trailing whitespace
+    def email_validator(cls, value):
 
-    @field_validator("phone")                            # Target the 'phone' field
+        valid_domains = ['hdfc.com', 'icici.com']
+        # abc@gmail.com
+        domain_name = value.split('@')[-1]
+
+        if domain_name not in valid_domains:
+            raise ValueError('Not a valid domain')
+
+        return value
+    
+    @field_validator('name')
     @classmethod
-    def validate_phone_format(cls, value: Optional[str]) -> Optional[str]:
-        """Validates phone is digits-only if provided."""
-        if value is None:                                # Skip validation if field is absent
+    def transform_name(cls, value):
+        return value.upper()
+    
+    @field_validator('age', mode='after')
+    @classmethod
+    def validate_age(cls, value):
+        if 0 < value < 100:
             return value
-        cleaned = re.sub(r"[\s\-\(\)]", "", value)      # Remove spaces, dashes, parentheses
-        if not cleaned.isdigit():                        # Check remaining chars are all digits
-            raise ValueError("Phone number must contain only digits.")
-        return cleaned                                   # Return the cleaned version
+        else:
+            raise ValueError('Age should be in between 0 and 100')
 
-# --- Testing valid data ---
-user = UserRegistration(
-    username="alice",
-    email="  Alice@Example.COM  ",                      # Will be lowercased by validator
-    password="securepassword123",
-    phone="(555) 123-4567"                              # Will be cleaned by validator
-)
-print(user.email)    # Output: alice@example.com  (normalized)
-print(user.phone)    # Output: 5551234567         (cleaned)
 
-# --- Testing invalid email ---
-try:
-    bad_user = UserRegistration(
-        username="bob",
-        email="not-an-email",                           # Invalid — no '@' or domain
-        password="password123"
-    )
-except Exception as e:
-    print(e)         # Output: 1 validation error for UserRegistration / email / ...
+def update_patient_data(patient: Patient):
 
-# --- Testing invalid username ---
-try:
-    spaced_user = UserRegistration(
-        username="has space",                           # Invalid — contains a space
-        email="test@example.com",
-        password="password123"
-    )
-except Exception as e:
-    print(e)         # Output: 1 validation error for UserRegistration / username / ...
+    print(patient.name)
+    print(patient.age)
+    print(patient.allergies)
+    print(patient.married)
+    print('updated')
+
+patient_info = {'name':'nitish', 'email':'abc@icici.com', 'age': '30', 'weight': 75.2, 'married': True, 'allergies': ['pollen', 'dust'], 'contact_details':{'phone':'2353462'}}
+
+patient1 = Patient(**patient_info) # validation -> type coercion
+
+update_patient_data(patient1)
 ```
 
 ---
@@ -353,96 +306,40 @@ except Exception as e:
 > Field validators check individual items — one bag on a scanner at a time. But some rules require looking at *multiple things together*. An airline agent must verify that your departure date is before your return date, that your ticket matches your passport name, and that your seat class matches your ticket tier. These are *cross-field* rules. `@model_validator` operates at the whole-model level — seeing all fields simultaneously — just like the airline agent.
 
 ```python
-# model_validators.py
+from pydantic import BaseModel, EmailStr, model_validator
+from typing import List, Dict
 
-from pydantic import BaseModel, Field, model_validator  # Import the model-level decorator
-from typing import Optional
-from datetime import date                                # Standard library date type
+class Patient(BaseModel):
 
-class BookingRequest(BaseModel):
-    passenger_name: str = Field(min_length=2)            # Name of the passenger
-    departure_date: date                                  # Trip start date
-    return_date: Optional[date] = None                   # Trip end date (optional for one-way)
-    is_round_trip: bool = False                          # Whether this is a round-trip booking
-    seat_class: str = Field(default="economy")           # Seat class selection
-    discount_code: Optional[str] = None                  # Optional promo code
-    price: float = Field(gt=0)                           # Ticket price, must be > 0
+    name: str
+    email: EmailStr
+    age: int
+    weight: float
+    married: bool
+    allergies: List[str]
+    contact_details: Dict[str, str]
 
-    @model_validator(mode="after")                       # 'after' means all fields are validated first
-    def validate_dates_and_trip_type(self) -> "BookingRequest":
-        """
-        Cross-field rule 1: If round trip, return_date must be provided.
-        Cross-field rule 2: return_date must be after departure_date.
-        """
-        if self.is_round_trip and self.return_date is None:   # Check cross-field dependency
-            raise ValueError(
-                "return_date is required for round-trip bookings."
-            )
+    @model_validator(mode='after')
+    def validate_emergency_contact(cls, model):
+        if model.age > 60 and 'emergency' not in model.contact_details:
+            raise ValueError('Patients older than 60 must have an emergency contact')
+        return model
 
-        if self.return_date is not None:                      # Only compare if return_date exists
-            if self.return_date <= self.departure_date:       # Return must be AFTER departure
-                raise ValueError(
-                    "return_date must be strictly after departure_date."
-                )
-        return self                                           # MUST return self in 'after' mode
 
-    @model_validator(mode="after")                       # Second model-level validator
-    def validate_business_class_price(self) -> "BookingRequest":
-        """
-        Cross-field rule: Business class bookings must cost at least $500.
-        Prevents pricing logic errors where class and price are mismatched.
-        """
-        if self.seat_class == "business" and self.price < 500.0:  # Check class AND price
-            raise ValueError(
-                "Business class tickets must be priced at $500 or above."
-            )
-        return self                                           # Return self to allow chaining
 
-# --- Valid one-way booking ---
-one_way = BookingRequest(
-    passenger_name="Carol White",
-    departure_date=date(2025, 12, 1),
-    is_round_trip=False,                                 # No return date needed
-    seat_class="economy",
-    price=299.00
-)
-print(one_way.passenger_name)  # Output: Carol White
+def update_patient_data(patient: Patient):
 
-# --- Valid round-trip booking ---
-round_trip = BookingRequest(
-    passenger_name="Dave Green",
-    departure_date=date(2025, 12, 1),
-    return_date=date(2025, 12, 15),                      # After departure — valid
-    is_round_trip=True,
-    seat_class="business",
-    price=1200.00                                        # >= 500 for business — valid
-)
-print(round_trip.return_date)  # Output: 2025-12-15
+    print(patient.name)
+    print(patient.age)
+    print(patient.allergies)
+    print(patient.married)
+    print('updated')
 
-# --- Invalid: round-trip without return_date ---
-try:
-    BookingRequest(
-        passenger_name="Eve Black",
-        departure_date=date(2025, 12, 1),
-        is_round_trip=True,                              # Round trip but no return date!
-        seat_class="economy",
-        price=200.00
-    )
-except Exception as e:
-    print(e)  # Output: return_date is required for round-trip bookings.
+patient_info = {'name':'nitish', 'email':'abc@icici.com', 'age': '65', 'weight': 75.2, 'married': True, 'allergies': ['pollen', 'dust'], 'contact_details':{'phone':'2353462', 'emergency':'235236'}}
 
-# --- Invalid: return_date before departure_date ---
-try:
-    BookingRequest(
-        passenger_name="Frank Blue",
-        departure_date=date(2025, 12, 15),
-        return_date=date(2025, 12, 1),                   # Return is BEFORE departure!
-        is_round_trip=True,
-        seat_class="economy",
-        price=200.00
-    )
-except Exception as e:
-    print(e)  # Output: return_date must be strictly after departure_date.
+patient1 = Patient(**patient_info) 
+
+update_patient_data(patient1)
 ```
 
 ---
@@ -456,90 +353,42 @@ except Exception as e:
 > When you get a receipt at a restaurant, it shows the subtotal, tax, and tip separately — but also the *total*, which is derived from the others. The total isn't stored anywhere independently; it's always *computed* from the other values. Pydantic's `@computed_field` works the same way: it exposes a derived value as if it were a regular field, and it appears in all serialized output automatically.
 
 ```python
-# computed_fields.py
+from pydantic import BaseModel, EmailStr, computed_field
+from typing import List, Dict
 
-from pydantic import BaseModel, Field, computed_field   # Import the computed_field decorator
-from typing import List
-from datetime import date, datetime                      # Date utilities
-import math                                              # Standard math module
+class Patient(BaseModel):
 
-class OrderItem(BaseModel):
-    product_name: str                                    # Name of the product
-    unit_price: float = Field(gt=0)                     # Price per single unit
-    quantity: int = Field(ge=1)                         # Number of units ordered
-
-    @computed_field                                      # Mark this property as a computed field
-    @property                                            # Must also be decorated as @property
-    def line_total(self) -> float:                       # Return type hint is required
-        """Calculates total price for this line item."""
-        return round(self.unit_price * self.quantity, 2) # Multiply and round to 2 decimals
-
-
-class ShoppingCart(BaseModel):
-    cart_id: str                                         # Unique cart identifier
-    customer_name: str                                   # Name of the customer
-    items: List[OrderItem]                               # List of order items (nested models)
-    discount_percent: float = Field(default=0.0, ge=0, le=100)  # Discount 0-100%
-    tax_rate: float = Field(default=8.5, gt=0)          # Tax rate as a percentage
+    name: str
+    email: EmailStr
+    age: int
+    weight: float # kg
+    height: float # mtr
+    married: bool
+    allergies: List[str]
+    contact_details: Dict[str, str]
 
     @computed_field
     @property
-    def subtotal(self) -> float:
-        """Sums all line item totals before tax and discounts."""
-        return round(sum(item.line_total for item in self.items), 2)  # Sum all computed line_totals
+    def bmi(self) -> float:
+        bmi = round(self.weight/(self.height**2),2)
+        return bmi
 
-    @computed_field
-    @property
-    def discount_amount(self) -> float:
-        """Calculates the monetary value of the discount."""
-        return round(self.subtotal * (self.discount_percent / 100), 2)  # Percentage of subtotal
 
-    @computed_field
-    @property
-    def taxable_amount(self) -> float:
-        """Amount subject to tax, after discount is applied."""
-        return round(self.subtotal - self.discount_amount, 2)  # Subtotal minus discount
 
-    @computed_field
-    @property
-    def tax_amount(self) -> float:
-        """Calculates the tax on the taxable amount."""
-        return round(self.taxable_amount * (self.tax_rate / 100), 2)  # Tax rate applied
+def update_patient_data(patient: Patient):
 
-    @computed_field
-    @property
-    def grand_total(self) -> float:
-        """Final amount due, including tax and after discounts."""
-        return round(self.taxable_amount + self.tax_amount, 2)  # Taxable + tax
+    print(patient.name)
+    print(patient.age)
+    print(patient.allergies)
+    print(patient.married)
+    print('BMI', patient.bmi)
+    print('updated')
 
-    @computed_field
-    @property
-    def item_count(self) -> int:
-        """Total number of individual product units in the cart."""
-        return sum(item.quantity for item in self.items)  # Sum all quantities
+patient_info = {'name':'nitish', 'email':'abc@icici.com', 'age': '65', 'weight': 75.2, 'height': 1.72, 'married': True, 'allergies': ['pollen', 'dust'], 'contact_details':{'phone':'2353462', 'emergency':'235236'}}
 
-# --- Create an order to test computed fields ---
-cart = ShoppingCart(
-    cart_id="CART-001",
-    customer_name="Grace Lee",
-    items=[
-        OrderItem(product_name="Keyboard", unit_price=79.99, quantity=1),   # line_total = 79.99
-        OrderItem(product_name="Mouse",    unit_price=29.99, quantity=2),   # line_total = 59.98
-        OrderItem(product_name="Monitor",  unit_price=349.99, quantity=1),  # line_total = 349.99
-    ],
-    discount_percent=10.0,                               # 10% discount
-    tax_rate=8.5                                         # 8.5% tax
-)
+patient1 = Patient(**patient_info) 
 
-print(f"Item Count    : {cart.item_count}")       # Output: 4
-print(f"Subtotal      : ${cart.subtotal}")        # Output: $489.96
-print(f"Discount (10%): ${cart.discount_amount}") # Output: $48.996 -> $49.00
-print(f"Tax Amount    : ${cart.tax_amount}")      # Computed from taxable amount
-print(f"Grand Total   : ${cart.grand_total}")     # Final computed total
-
-# Computed fields appear automatically in model_dump() output
-output = cart.model_dump()
-print("grand_total" in output)   # Output: True — computed fields are included by default
+update_patient_data(patient1)
 ```
 
 ---
@@ -553,98 +402,33 @@ print("grand_total" in output)   # Output: True — computed fields are included
 > After validating and processing goods in a warehouse, you need to *export* them. Depending on the destination, you might ship different subsets — some items are confidential and can't leave the building; others need to be in a different format for international customs. Pydantic's serialization tools (`model_dump`, `model_dump_json`) are your packing and manifest system, giving you precise control over what leaves and in what format.
 
 ```python
-# serialization.py
+from pydantic import BaseModel
 
-from pydantic import BaseModel, Field, computed_field   # Core imports
-from typing import Optional, Set
-from datetime import datetime
+class Address(BaseModel):
 
-class UserProfile(BaseModel):
-    user_id: int                                          # Primary identifier
-    username: str                                         # Public username
-    email: str                                            # Email — may be sensitive
-    hashed_password: str                                  # Never expose this!
-    api_key: str                                          # Secret key — never expose
-    bio: Optional[str] = None                            # Optional public bio
-    created_at: datetime = Field(default_factory=datetime.now)  # Auto timestamp
+    city: str
+    state: str
+    pin: str
 
-    @computed_field
-    @property
-    def display_name(self) -> str:
-        """A formatted display name derived from username."""
-        return f"@{self.username}"                        # Prefix with '@'
+class Patient(BaseModel):
 
-# --- Create a sample user ---
-user = UserProfile(
-    user_id=1,
-    username="techguru",
-    email="guru@example.com",
-    hashed_password="$2b$12$hashed...",
-    api_key="sk-abc123xyz789",
-    bio="Loves Python and coffee."
-)
-
-# =============================================================
-# --- model_dump(): returns a Python dictionary ---
-# =============================================================
-print("--- Full model_dump() ---")
-full_dict = user.model_dump()                            # Default: all fields included
-print(full_dict)                                         # Includes hashed_password and api_key!
-
-# --- EXCLUDE sensitive fields ---
-print("\n--- Excluding sensitive fields ---")
-safe_dict = user.model_dump(
-    exclude={"hashed_password", "api_key"}               # Pass a set of field names to exclude
-)
-print(safe_dict)                                         # hashed_password and api_key are gone
-
-# --- INCLUDE only specific fields ---
-print("\n--- Including only specific fields ---")
-public_dict = user.model_dump(
-    include={"user_id", "username", "bio", "display_name"}  # Only these fields will appear
-)
-print(public_dict)                                       # Only the specified fields in output
-
-# --- Exclude fields with None values ---
-print("\n--- Excluding None values ---")
-user_no_bio = UserProfile(
-    user_id=2, username="anon", email="a@b.com",
-    hashed_password="hash", api_key="key"                # No bio provided
-)
-no_none_dict = user_no_bio.model_dump(exclude_none=True) # Fields with None are omitted
-print(no_none_dict)                                      # 'bio' will not appear
-
-# --- Exclude default values ---
-print("\n--- Excluding defaults ---")
-default_excluded = user.model_dump(exclude_defaults=True) # Fields at their default value are omitted
-
-# =============================================================
-# --- model_dump_json(): returns a JSON string ---
-# =============================================================
-print("\n--- model_dump_json() ---")
-json_str = user.model_dump_json(                          # Outputs a JSON-encoded string
-    exclude={"hashed_password", "api_key"},               # Same filtering options apply
-    indent=2                                              # Pretty-print with indentation
-)
-print(json_str)                                           # Output: formatted JSON string
-print(type(json_str))                                     # Output: <class 'str'>
-
-# --- Key difference: model_dump vs model_dump_json ---
-# model_dump()      -> returns dict  (Python object, good for further manipulation)
-# model_dump_json() -> returns str   (JSON string, good for APIs, files, logging)
-
-# =============================================================
-# --- Controlling datetime serialization ---
-# =============================================================
-class Event(BaseModel):
     name: str
-    scheduled_at: datetime
+    gender: str = 'Male'
+    age: int
+    address: Address
 
-event = Event(name="Launch", scheduled_at=datetime(2025, 6, 15, 9, 0, 0))
+address_dict = {'city': 'gurgaon', 'state': 'haryana', 'pin': '122001'}
 
-# Serialize datetime as ISO string (default)
-print(event.model_dump())                                # datetime object in dict
-print(event.model_dump_json())                           # ISO 8601 string in JSON
+address1 = Address(**address_dict)
+
+patient_dict = {'name': 'nitish', 'age': 35, 'address': address1}
+
+patient1 = Patient(**patient_dict)
+
+temp = patient1.model_dump(exclude_unset=True)
+
+print(temp)
+print(type(temp))
 ```
 
 ---
