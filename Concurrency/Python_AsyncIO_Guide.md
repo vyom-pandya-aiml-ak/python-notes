@@ -285,7 +285,7 @@ asyncio.run(main())
 -----
 
 ### Handling `asyncio.CancelledError` — Clean Up Before Quitting
-
+In Python's asyncio, the CancelledError exception is the primary mechanism used to request and handle the termination of an asynchronous task. It acts as a signal to a running coroutine that it should stop its execution and clean up resources. 
 ```python
 import asyncio
 
